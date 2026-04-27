@@ -1,20 +1,15 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository
 
-import androidx.lifecycle.LiveData
-// IMPORTANT: These imports link your packages
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.database.Expense
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.database.ExpenseDao
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Expense
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.ExpenseDao
 
 class ExpenseRepository(private val dao: ExpenseDao) {
 
-    // Explicitly define the type to fix the "platform call/nullability" warning
-    val allExpenses: LiveData<List<Expense>> = dao.getAllExpenses()
-
-    suspend fun insert(expense: Expense) {
-        dao.insert(expense)
+    suspend fun getExpensesForUser(userId: Int): List<Expense> {
+        return dao.getExpensesForUser(userId)
     }
 
-    suspend fun delete(expense: Expense) {
-        dao.delete(expense)
+    suspend fun insert(expense: Expense) {
+        dao.insertExpense(expense)
     }
 }
