@@ -1,4 +1,4 @@
-package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.database
+package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database
 
 import android.content.Context
 import androidx.room.Database
@@ -21,7 +21,7 @@ abstract class ExpenseDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     ExpenseDatabase::class.java,
-                    "expense_db"
+                    "fintrack_db"
                 ).build()
                 INSTANCE = instance
                 instance

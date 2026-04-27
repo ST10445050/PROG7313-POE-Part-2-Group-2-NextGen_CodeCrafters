@@ -14,44 +14,28 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.ExpenseDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.AddExpenseScreen
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseListScreen
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.PROG7313POEPart2Group2NextGen_CodeCraftersTheme
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.AddExpenseScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-
-        val db = ExpenseDatabase.getDatabase(applicationContext)
-        val viewModel = ExpenseViewModel(application, db.expenseDao())
-
         enableEdgeToEdge()
         setContent {
             PROG7313POEPart2Group2NextGen_CodeCraftersTheme {
                 val navController = rememberNavController()
 
+
                 NavHost(navController = navController, startDestination = "add_expense/1") {
 
+                    // Route for your custom screen
                     composable("add_expense/{userId}") { backStackEntry ->
-                        val userIdString = backStackEntry.arguments?.getString("userId")
-                        val userId = userIdString?.toIntOrNull() ?: 1
-
-                        AddExpenseScreen(
-                            userId = userId,
-                            viewModel = viewModel,
-                            onSaveSuccess = { navController.navigate("expense_list/$userId") }
-                        )
+                        val userId = backStackEntry.arguments?.getString("userId")?.toInt() ?: 1
+                        AddExpenseScreen(userId = userId, onSaveSuccess = {
+                            navController.navigate("home")
+                        })
                     }
 
-
-                    composable("expense_list/{userId}") { backStackEntry ->
-                        val userIdString = backStackEntry.arguments?.getString("userId")
-                        val userId = userIdString?.toIntOrNull() ?: 1
-                        ExpenseListScreen(userId = userId, viewModel = viewModel)
-                    }
 
                     composable("home") {
                         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
