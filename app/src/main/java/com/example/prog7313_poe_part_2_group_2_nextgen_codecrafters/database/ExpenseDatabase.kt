@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entites.Expense
 
 @Database(entities = [Expense::class], version = 1)
 abstract class ExpenseDatabase : RoomDatabase() {
