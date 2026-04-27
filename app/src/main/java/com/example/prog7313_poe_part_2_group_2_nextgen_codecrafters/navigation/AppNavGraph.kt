@@ -1,5 +1,6 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.navigation
 
+import android.net.Uri
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
@@ -8,7 +9,13 @@ import androidx.navigation.compose.rememberNavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.LandingScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.LoginScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.NewPasswordScreen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.Question1Screen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.Question2Screen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.Question3Screen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.Question4Screen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.Question5Screen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.RegisterScreen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.dashboard.DashboardScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.ResetEmailScreen
 
 @Composable
@@ -36,16 +43,57 @@ fun AppNavGraph() {
         }
 
         composable("newPassword/{email}") { backStackEntry ->
-            val email = backStackEntry.arguments?.getString("email") ?: ""
+            val email = Uri.decode(backStackEntry.arguments?.getString("email") ?: "")
             NewPasswordScreen(navController, email)
         }
 
-        composable("question1") {
-            Text("Questionnaire Question 1")
+        composable("question1/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            Question1Screen(navController, userId)
         }
 
-        composable("dashboard") {
-            Text("Dashboard Screen")
+        composable("question2/{userId}/{employmentStatus}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val employmentStatus = Uri.decode(backStackEntry.arguments?.getString("employmentStatus") ?: "")
+            Question2Screen(navController, userId, employmentStatus)
+        }
+
+        composable("question3/{userId}/{employmentStatus}/{monthlyIncome}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val employmentStatus = Uri.decode(backStackEntry.arguments?.getString("employmentStatus") ?: "")
+            val monthlyIncome = backStackEntry.arguments?.getString("monthlyIncome")?.toDoubleOrNull() ?: 0.0
+            Question3Screen(navController, userId, employmentStatus, monthlyIncome)
+        }
+
+        composable("question4/{userId}/{employmentStatus}/{monthlyIncome}/{categories}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val employmentStatus = Uri.decode(backStackEntry.arguments?.getString("employmentStatus") ?: "")
+            val monthlyIncome = backStackEntry.arguments?.getString("monthlyIncome")?.toDoubleOrNull() ?: 0.0
+            val categories = Uri.decode(backStackEntry.arguments?.getString("categories") ?: "")
+            Question4Screen(navController, userId, employmentStatus, monthlyIncome, categories)
+        }
+
+        composable("question5/{userId}/{employmentStatus}/{monthlyIncome}/{categories}/{financialGoal}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val employmentStatus = Uri.decode(backStackEntry.arguments?.getString("employmentStatus") ?: "")
+            val monthlyIncome = backStackEntry.arguments?.getString("monthlyIncome")?.toDoubleOrNull() ?: 0.0
+            val categories = Uri.decode(backStackEntry.arguments?.getString("categories") ?: "")
+            val financialGoal = Uri.decode(backStackEntry.arguments?.getString("financialGoal") ?: "")
+
+            Question5Screen(
+                navController = navController,
+                userId = userId,
+                employmentStatus = employmentStatus,
+                monthlyIncome = monthlyIncome,
+                categories = categories,
+                financialGoal = financialGoal
+            )
+        }
+
+        composable("dashboard/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            DashboardScreen(userId)
+
         }
     }
 }

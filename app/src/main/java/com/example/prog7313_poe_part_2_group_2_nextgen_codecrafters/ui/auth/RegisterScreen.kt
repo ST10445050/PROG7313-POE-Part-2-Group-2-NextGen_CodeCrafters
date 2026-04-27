@@ -158,12 +158,12 @@ fun RegisterScreen(navController: NavController) {
                                         password = password
                                     )
 
-                                    userDao.insertUser(user)
+                                    val newUserId = userDao.insertUser(user).toInt()
 
                                     Toast.makeText(context, "Account successfully created", Toast.LENGTH_SHORT).show()
-                                    Log.d("RegisterScreen", "User registered successfully")
+                                    Log.d("RegisterScreen", "User registered successfully with ID: $newUserId")
 
-                                    navController.navigate("question1")
+                                    navController.navigate("question1/$newUserId")
                                 }
                             }
                         }

@@ -74,9 +74,9 @@ fun LoginScreen(navController: NavController) {
 
                             if (user != null) {
                                 Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                                Log.d("LoginScreen", "Login successful for user: ${user.username}")
+                                Log.d("LoginScreen", "Login successful for user: ${user.username}, id=${user.id}")
 
-                                navController.navigate("dashboard")
+                                navController.navigate("dashboard/${user.id}")
                             } else {
                                 Toast.makeText(context, "Invalid username or password", Toast.LENGTH_SHORT).show()
                                 Log.e("LoginScreen", "Login failed: invalid credentials")
