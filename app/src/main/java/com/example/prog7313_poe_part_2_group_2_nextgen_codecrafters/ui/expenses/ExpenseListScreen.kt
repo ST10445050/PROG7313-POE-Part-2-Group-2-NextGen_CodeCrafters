@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.ExpenseDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Expense
 import java.text.SimpleDateFormat
 import java.util.*
@@ -27,7 +27,7 @@ import java.util.*
 @Composable
 fun ExpenseListScreen(userId: Int = 1) {
     val context = LocalContext.current
-    val dao = remember { ExpenseDatabase.getDatabase(context).expenseDao() }
+    val dao = remember { AppDatabase.getDatabase(context).expenseDao() }
 
     var selectedFilter by remember { mutableStateOf("This Month") }
     val showDatePickerState = remember { mutableStateOf(false) }
@@ -176,7 +176,6 @@ fun ExpenseListScreen(userId: Int = 1) {
     }
 
     if (showDatePickerState.value) {
-        // Initialize the state with the current selection if possible
         val dateRangePickerState = rememberDateRangePickerState(
             initialSelectedStartDateMillis = parseDateToMillis(startDate),
             initialSelectedEndDateMillis = parseDateToMillis(endDate)
@@ -216,7 +215,7 @@ fun ExpenseListScreen(userId: Int = 1) {
                     val end = dateRangePickerState.selectedEndDateMillis?.let { formatDate(it) } ?: "End"
                     Text("$start - $end", fontSize = 18.sp)
                 },
-                showModeToggle = true, // Allows user to switch between calendar and text input
+                showModeToggle = true,
                 colors = DatePickerDefaults.colors(
                     containerColor = Color(0xFF161B22),
                     titleContentColor = Color.White,
@@ -262,7 +261,6 @@ fun ExpenseItem(expense: Expense) {
 
 fun formatDate(millis: Long): String {
     val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    // Ensure UTC for consistency with DatePicker
     formatter.timeZone = TimeZone.getTimeZone("UTC")
     return formatter.format(Date(millis))
 }
