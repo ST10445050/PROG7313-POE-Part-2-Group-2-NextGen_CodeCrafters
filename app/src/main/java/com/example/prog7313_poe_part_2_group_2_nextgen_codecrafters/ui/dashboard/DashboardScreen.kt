@@ -1,18 +1,37 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.dashboard
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.QuestionnaireAnswers
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.User
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
 
 @Composable
 fun DashboardScreen(userId: Int) {
+
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
 
@@ -28,110 +47,367 @@ fun DashboardScreen(userId: Int) {
 
     val monthlyBudget = answers?.monthlyIncome ?: 0.0
     val savingsGoal = answers?.monthlySavingsGoal ?: 0.0
-    val spendingCategories = answers?.spendingCategories ?: "General spending"
-    val mainCategory = spendingCategories.split(",").firstOrNull() ?: "General spending"
 
-    val usedPercentage = when {
-        monthlyBudget <= 0.0 -> 0
-        savingsGoal >= monthlyBudget -> 100
-        else -> ((savingsGoal / monthlyBudget) * 100).toInt()
-    }
+    val amountSpent = 0.0
+    val usedPercentage = 0
+    val remaining = monthlyBudget - amountSpent
+
+    val categories = answers?.spendingCategories
+        ?.split(",")
+        ?.map { it.trim() }
+        ?.filter { it.isNotBlank() }
+        ?: emptyList()
 
     val personalisedMessage = when (answers?.financialGoal) {
-        "Save more money" -> "Your dashboard is focused on helping you save consistently."
-        "Reduce spending" -> "Your dashboard is focused on reducing unnecessary expenses."
-        "Pay off debt" -> "Your dashboard is focused on disciplined spending and debt control."
-        "Track my finances better" -> "Your dashboard is focused on improving daily financial tracking."
-        else -> "Start tracking your finances to build better money habits."
+        "Save more money" -> "Your dashboard is focused on saving and reaching your monthly savings goal."
+        "Reduce spending" -> "Your dashboard is focused on helping you control spending before adding expenses."
+        "Pay off debt" -> "Your dashboard is focused on reducing debt through better tracking."
+        "Track my finances better" -> "Your dashboard is focused on giving you better visibility of your money."
+        else -> "Complete your questionnaire to personalise your dashboard."
     }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { },
-                    icon = { Text("🏠") },
-                    label = { Text("Dashboard") }
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
 
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = { Text("💳") },
-                    label = { Text("Expenses") }
-                )
-
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = { Text("📁") },
-                    label = { Text("Categories") }
-                )
-
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = { Text("⚙️") },
-                    label = { Text("Settings") }
-                )
-            }
-        }
-    ) { paddingValues ->
+        Image(
+            painter = painterResource(id = R.drawable.fintrack_background),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 18.dp)
+                .padding(top = 32.dp, bottom = 90.dp)
         ) {
-            Text("FinTrack")
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("Hello $userName 👋")
-            Text("Let’s manage your finances today.")
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text("Monthly Budget Overview")
-            Text("Budget: R${monthlyBudget.toInt()}")
-            Text("$usedPercentage% Savings Target")
-            Text("Savings Goal: R${savingsGoal.toInt()}")
-            Text("Estimated Remaining: R${(monthlyBudget - savingsGoal).toInt()}")
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text("Spending Focus")
-            Text("Your main focus category is: $mainCategory")
-            Text("Other selected categories: $spendingCategories")
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text("Personalised Insight")
-            Text(personalisedMessage)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text("Quick Actions")
-            Row {
-                Button(onClick = { }) {
-                    Text("Add Expense")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row {
+                    Text("Fin", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                    Text("Track", color = FinTrackMint, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(34.dp)
+                )
+            }
 
-                Button(onClick = { }) {
-                    Text("View Insights")
+            Divider(
+                color = Color.White.copy(alpha = 0.25f),
+                modifier = Modifier.padding(top = 18.dp, bottom = 18.dp)
+            )
+
+            Text(
+                text = "Hello $userName 👋",
+                color = FinTrackMint,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = personalisedMessage,
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 17.sp,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            DashboardCard {
+                Text(
+                    "Monthly Budget Overview",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = "R${monthlyBudget.toInt()}",
+                        color = Color.White,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row {
+                        Text(
+                            text = "$usedPercentage%",
+                            color = FinTrackMint,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = " Used",
+                            color = Color.White,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                LinearProgressIndicator(
+                    progress = { 0f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp),
+                    color = FinTrackLime,
+                    trackColor = FinTrackTeal.copy(alpha = 0.45f)
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    BudgetItem("Budget", "R${monthlyBudget.toInt()}", Modifier.weight(1f))
+                    BudgetItem("Spent", "R${amountSpent.toInt()}", Modifier.weight(1f))
+                    BudgetItem("Remaining", "R${remaining.toInt()}", Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Savings Goal: R${savingsGoal.toInt()}",
+                    color = FinTrackMint,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            DashboardCard {
+                Text(
+                    "Spending Summary",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (categories.isEmpty()) {
+                    Text(
+                        "No spending categories selected yet.",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 16.sp
+                    )
+                } else {
+                    categories.take(4).forEachIndexed { index, category ->
+                        SpendingRow(
+                            icon = when (category.lowercase()) {
+                                "groceries" -> Icons.Outlined.ShoppingBasket
+                                "transport" -> Icons.Outlined.DirectionsCar
+                                "subscriptions" -> Icons.Outlined.Receipt
+                                "shopping" -> Icons.Outlined.ShoppingCart
+                                else -> Icons.Outlined.Category
+                            },
+                            title = category,
+                            amount = "R0",
+                            progress = 0f,
+                            color = listOf(
+                                FinTrackLime,
+                                FinTrackMint,
+                                Color(0xFFB075D6),
+                                Color(0xFFE85FA3)
+                            ).getOrElse(index) { FinTrackMint }
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            Text("Recent Expenses")
-            Text("No recent expenses yet.")
+            DashboardCard {
+                Text(
+                    "Personalised Goal",
+                    color = Color.White,
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = answers?.financialGoal ?: "No financial goal selected yet.",
+                    color = FinTrackMint,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            DashboardCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Quick Actions", color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+                    Text("Your Progress ›", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    QuickAction("✚", "Add\nExpense", Modifier.weight(1f))
+                    QuickAction("▥", "View\nInsights", Modifier.weight(1f))
+                    QuickAction("✪", "Budget\nGoals", Modifier.weight(1f))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Text(
+                text = "Recent Expenses",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            DashboardCard {
+                Text(
+                    text = "No expenses yet. Add your first expense to start tracking.",
+                    color = Color.White.copy(alpha = 0.75f),
+                    fontSize = 16.sp
+                )
+            }
         }
+
+        BottomDashboardNav(
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+@Composable
+private fun DashboardCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Color(0xCC071827),
+                RoundedCornerShape(18.dp)
+            )
+            .padding(18.dp),
+        content = content
+    )
+}
+
+@Composable
+private fun BudgetItem(label: String, value: String, modifier: Modifier) {
+    Column(modifier = modifier) {
+        Text(label, color = Color.White.copy(alpha = 0.75f), fontSize = 14.sp)
+        Text(value, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun SpendingRow(
+    icon: ImageVector,
+    title: String,
+    amount: String,
+    progress: Float,
+    color: Color
+) {
+    Column(modifier = Modifier.padding(bottom = 12.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(25.dp))
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Text(title, color = Color.White, fontSize = 20.sp, modifier = Modifier.weight(1f))
+
+            Text(amount, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 38.dp)
+                .height(7.dp),
+            color = color,
+            trackColor = Color(0xFF17354A)
+        )
+    }
+}
+
+@Composable
+private fun QuickAction(icon: String, label: String, modifier: Modifier) {
+    Row(
+        modifier = modifier
+            .height(62.dp)
+            .background(
+                Brush.horizontalGradient(
+                    listOf(FinTrackLime, FinTrackTeal)
+                ),
+                RoundedCornerShape(10.dp)
+            )
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(icon, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun BottomDashboardNav(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(76.dp)
+            .background(Color(0xEE071827))
+            .padding(horizontal = 10.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BottomItem(Icons.Default.Home, "Dashboard", true)
+        BottomItem(Icons.Outlined.CreditCard, "Expenses", false)
+        BottomItem(Icons.Outlined.Folder, "Categories", false)
+        BottomItem(Icons.Default.Settings, "Settings", false)
+    }
+}
+
+@Composable
+private fun BottomItem(icon: ImageVector, label: String, selected: Boolean) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (selected) FinTrackMint else Color.White.copy(alpha = 0.65f),
+            modifier = Modifier.size(28.dp)
+        )
+        Text(
+            text = label,
+            color = if (selected) FinTrackMint else Color.White.copy(alpha = 0.65f),
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
     }
 }
