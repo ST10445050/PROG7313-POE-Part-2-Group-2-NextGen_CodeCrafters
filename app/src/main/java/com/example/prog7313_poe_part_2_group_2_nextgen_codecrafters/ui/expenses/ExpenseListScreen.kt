@@ -178,7 +178,8 @@ fun ExpenseListScreen(userId: Int = 1) {
     if (showDatePickerState.value) {
         val dateRangePickerState = rememberDateRangePickerState(
             initialSelectedStartDateMillis = parseDateToMillis(startDate),
-            initialSelectedEndDateMillis = parseDateToMillis(endDate)
+            initialSelectedEndDateMillis = parseDateToMillis(endDate),
+            initialDisplayMode = DisplayMode.Picker
         )
         
         DatePickerDialog(
@@ -204,18 +205,28 @@ fun ExpenseListScreen(userId: Int = 1) {
                 TextButton(onClick = { showDatePickerState.value = false }) {
                     Text("Cancel")
                 }
-            }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Color(0xFF161B22)
+            )
         ) {
             DateRangePicker(
                 state = dateRangePickerState,
                 modifier = Modifier.weight(1f).padding(16.dp),
-                title = { Text("Select Date Range", modifier = Modifier.padding(bottom = 8.dp)) },
-                headline = { 
-                    val start = dateRangePickerState.selectedStartDateMillis?.let { formatDate(it) } ?: "Start"
-                    val end = dateRangePickerState.selectedEndDateMillis?.let { formatDate(it) } ?: "End"
-                    Text("$start - $end", fontSize = 18.sp)
+                title = { 
+                    Text(
+                        "Select Date Range", 
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    ) 
                 },
-                showModeToggle = true,
+                headline = { 
+                    val start = dateRangePickerState.selectedStartDateMillis?.let { formatDate(it) } ?: "Start Date"
+                    val end = dateRangePickerState.selectedEndDateMillis?.let { formatDate(it) } ?: "End Date"
+                    Text("$start - $end", fontSize = 18.sp, color = Color.White)
+                },
+                showModeToggle = true, // Enable toggle so they can use the dropdown/input if needed
                 colors = DatePickerDefaults.colors(
                     containerColor = Color(0xFF161B22),
                     titleContentColor = Color.White,
@@ -224,7 +235,12 @@ fun ExpenseListScreen(userId: Int = 1) {
                     todayContentColor = Color(0xFF4DB6AC),
                     todayDateBorderColor = Color(0xFF4DB6AC),
                     dayContentColor = Color.White,
-                    selectedDayContentColor = Color.Black
+                    selectedDayContentColor = Color.Black,
+                    navigationContentColor = Color.White, // Shows arrows for switching months
+                    yearContentColor = Color.White,
+                    currentYearContentColor = Color(0xFF4DB6AC),
+                    selectedYearContentColor = Color.Black,
+                    selectedYearContainerColor = Color(0xFF4DB6AC)
                 )
             )
         }
