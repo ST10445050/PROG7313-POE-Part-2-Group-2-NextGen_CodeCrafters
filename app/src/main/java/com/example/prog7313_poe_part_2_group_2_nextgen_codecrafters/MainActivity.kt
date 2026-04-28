@@ -3,46 +3,65 @@ package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.PROG7313POEPart2Group2NextGen_CodeCraftersTheme
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expenses.AddExpenseScreen
+import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            PROG7313POEPart2Group2NextGen_CodeCraftersTheme {
-                val navController = rememberNavController()
+            FinTrackApp()
+        }
+    }
+}
 
+@Composable
+fun FinTrackApp() {
+    var currentScreen by remember { mutableStateOf("Home") }
 
-                NavHost(navController = navController, startDestination = "add_expense/1") {
-
-                    // Route for your custom screen
-                    composable("add_expense/{userId}") { backStackEntry ->
-                        val userId = backStackEntry.arguments?.getString("userId")?.toInt() ?: 1
-                        AddExpenseScreen(userId = userId)
-                    }
-
-
-                    composable("home") {
-                        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                            Greeting(
-                                name = "Android",
-                                modifier = Modifier.padding(innerPadding)
-                            )
-                        }
-                    }
+    MaterialTheme {
+        Scaffold(
+            bottomBar = {
+                NavigationBar {
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        label = { Text("Home") },
+                        selected = currentScreen == "Home",
+                        onClick = { currentScreen = "Home" }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.List, contentDescription = "Categories") },
+                        label = { Text("Categories") },
+                        selected = currentScreen == "Categories",
+                        onClick = { currentScreen = "Categories" }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Goals") },
+                        label = { Text("Goals") },
+                        selected = currentScreen == "Goals",
+                        onClick = { currentScreen = "Goals" }
+                    )
+                }
+            }
+        ) { innerPadding ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                when (currentScreen) {
+                    "Home" -> HomeScreen()
+                    "Categories" -> CategoriesScreen()
+                    "Goals" -> GoalsScreen()
                 }
             }
         }
@@ -50,17 +69,35 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+fun HomeScreen() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Welcome to FinTrack", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Your personal budget tracker")
+    }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    PROG7313POEPart2Group2NextGen_CodeCraftersTheme {
-        Greeting("Android")
+fun CategoriesScreen() {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("Category Totals", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(16.dp))
+        // Placeholder for category totals
+        Text("Food: R 0.00")
+        Text("Transport: R 0.00")
+        Text("Entertainment: R 0.00")
+    }
+}
+
+@Composable
+fun GoalsScreen() {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("Financial Goals", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("No goals set yet.")
     }
 }
