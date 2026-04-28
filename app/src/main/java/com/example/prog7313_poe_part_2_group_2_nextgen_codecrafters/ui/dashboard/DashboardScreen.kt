@@ -31,8 +31,10 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entitie
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
 
 @Composable
-fun DashboardScreen(navController: NavController, userId: Int) {
-
+fun DashboardScreen(
+    navController: NavController,
+    userId: Int
+) {
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
 
@@ -66,7 +68,6 @@ fun DashboardScreen(navController: NavController, userId: Int) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
