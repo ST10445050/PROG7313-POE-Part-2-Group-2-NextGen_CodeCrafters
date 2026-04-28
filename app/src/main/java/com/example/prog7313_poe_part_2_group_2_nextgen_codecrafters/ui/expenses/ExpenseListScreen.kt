@@ -179,7 +179,7 @@ fun ExpenseListScreen(userId: Int = 1) {
         val dateRangePickerState = rememberDateRangePickerState(
             initialSelectedStartDateMillis = parseDateToMillis(startDate),
             initialSelectedEndDateMillis = parseDateToMillis(endDate),
-            initialDisplayMode = DisplayMode.Picker
+            initialDisplayMode = DisplayMode.Input // Start in typing mode
         )
         
         DatePickerDialog(
@@ -226,7 +226,7 @@ fun ExpenseListScreen(userId: Int = 1) {
                     val end = dateRangePickerState.selectedEndDateMillis?.let { formatDate(it) } ?: "End Date"
                     Text("$start - $end", fontSize = 18.sp, color = Color.White)
                 },
-                showModeToggle = true, // Enable toggle so they can use the dropdown/input if needed
+                showModeToggle = true,
                 colors = DatePickerDefaults.colors(
                     containerColor = Color(0xFF161B22),
                     titleContentColor = Color.White,
@@ -236,7 +236,7 @@ fun ExpenseListScreen(userId: Int = 1) {
                     todayDateBorderColor = Color(0xFF4DB6AC),
                     dayContentColor = Color.White,
                     selectedDayContentColor = Color.Black,
-                    navigationContentColor = Color.White, // Shows arrows for switching months
+                    navigationContentColor = Color.White,
                     yearContentColor = Color.White,
                     currentYearContentColor = Color(0xFF4DB6AC),
                     selectedYearContentColor = Color.Black,
