@@ -156,6 +156,7 @@ fun DashboardScreen(userId: Int) {
                             color = Color.White,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold
+
                         )
                     }
                 }
