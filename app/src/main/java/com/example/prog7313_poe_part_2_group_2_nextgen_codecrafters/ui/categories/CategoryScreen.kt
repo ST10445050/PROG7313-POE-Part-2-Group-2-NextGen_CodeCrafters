@@ -3,6 +3,7 @@ package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.categori
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,10 +25,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 
 @Composable
 fun CategoryScreen(
+    navController: NavController,
+    userId: Int,
     viewModel: CategoryViewModel = viewModel()
 ) {
     val categories by viewModel.categories.collectAsState()
@@ -50,7 +54,13 @@ fun CategoryScreen(
                 .fillMaxSize()
                 .padding(bottom = 78.dp)
         ) {
-            TopBar()
+            TopBar(
+                onBackClick = {
+                    navController.navigate("dashboard/$userId") {
+                        launchSingleTop = true
+                    }
+                }
+            )
 
             Column(
                 modifier = Modifier
@@ -86,13 +96,15 @@ fun CategoryScreen(
         }
 
         BottomNavBar(
+            navController = navController,
+            userId = userId,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
 }
 
 @Composable
-private fun TopBar() {
+private fun TopBar(onBackClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -105,24 +117,15 @@ private fun TopBar() {
             imageVector = Icons.Default.ArrowBack,
             contentDescription = "Back",
             tint = Color.White,
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier
+                .size(32.dp)
+                .clickable { onBackClick() }
         )
 
         Spacer(modifier = Modifier.width(14.dp))
 
-        Text(
-            text = "Fin",
-            color = Color.White,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            text = "Track",
-            color = Color(0xFF65D6D0),
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Text("Fin", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Text("Track", color = Color(0xFF65D6D0), fontSize = 26.sp, fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -144,15 +147,8 @@ private fun CategoryCard(categoryName: String) {
             .fillMaxWidth()
             .height(78.dp)
             .shadow(8.dp, RoundedCornerShape(14.dp))
-            .background(
-                Color(0xFF101B2D).copy(alpha = 0.90f),
-                RoundedCornerShape(14.dp)
-            )
-            .border(
-                1.dp,
-                Color.White.copy(alpha = 0.10f),
-                RoundedCornerShape(14.dp)
-            )
+            .background(Color(0xFF101B2D).copy(alpha = 0.90f), RoundedCornerShape(14.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
             .padding(horizontal = 15.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -162,10 +158,7 @@ private fun CategoryCard(categoryName: String) {
                 .background(iconData.backgroundColor, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = iconData.icon,
-                fontSize = 27.sp
-            )
+            Text(text = iconData.icon, fontSize = 27.sp)
         }
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -232,15 +225,8 @@ private fun AddCategoryBox(viewModel: CategoryViewModel) {
         modifier = Modifier
             .fillMaxWidth()
             .shadow(10.dp, RoundedCornerShape(16.dp))
-            .background(
-                Color(0xFF101B2D).copy(alpha = 0.92f),
-                RoundedCornerShape(16.dp)
-            )
-            .border(
-                1.dp,
-                Color(0xFF65D6D0).copy(alpha = 0.35f),
-                RoundedCornerShape(16.dp)
-            )
+            .background(Color(0xFF101B2D).copy(alpha = 0.92f), RoundedCornerShape(16.dp))
+            .border(1.dp, Color(0xFF65D6D0).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
             .padding(15.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -268,11 +254,7 @@ private fun AddCategoryBox(viewModel: CategoryViewModel) {
                 .fillMaxWidth()
                 .height(52.dp)
                 .background(Color(0xFF07111F).copy(alpha = 0.85f), RoundedCornerShape(10.dp))
-                .border(
-                    1.dp,
-                    Color(0xFF65D6D0).copy(alpha = 0.50f),
-                    RoundedCornerShape(10.dp)
-                ),
+                .border(1.dp, Color(0xFF65D6D0).copy(alpha = 0.50f), RoundedCornerShape(10.dp)),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextField(
@@ -307,10 +289,7 @@ private fun AddCategoryBox(viewModel: CategoryViewModel) {
                     modifier = Modifier
                         .background(
                             Brush.horizontalGradient(
-                                listOf(
-                                    Color(0xFFB6F529),
-                                    Color(0xFF39D58A)
-                                )
+                                listOf(Color(0xFFB6F529), Color(0xFF39D58A))
                             ),
                             RoundedCornerShape(9.dp)
                         )
@@ -329,7 +308,11 @@ private fun AddCategoryBox(viewModel: CategoryViewModel) {
 }
 
 @Composable
-private fun BottomNavBar(modifier: Modifier = Modifier) {
+private fun BottomNavBar(
+    navController: NavController,
+    userId: Int,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -338,30 +321,58 @@ private fun BottomNavBar(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BottomNavItem(Icons.Default.Home, "Dashboard")
-        BottomNavItem(Icons.Default.List, "Expenses")
-        BottomNavItem(Icons.Default.Folder, "Categories")
-        BottomNavItem(Icons.Default.Settings, "Settings")
+        BottomNavItem(Icons.Default.Home, "Dashboard", selected = false) {
+            navController.navigate("dashboard/$userId") {
+                launchSingleTop = true
+            }
+        }
+
+        BottomNavItem(Icons.Default.List, "Expenses", selected = false) {
+            navController.navigate("expenses/$userId") {
+                launchSingleTop = true
+            }
+        }
+
+        BottomNavItem(Icons.Default.Folder, "Categories", selected = true) {
+            navController.navigate("categories/$userId") {
+                launchSingleTop = true
+            }
+        }
+
+        BottomNavItem(Icons.Default.Settings, "Settings", selected = false) {
+            navController.navigate("settings/$userId") {
+                launchSingleTop = true
+            }
+        }
     }
 }
 
 @Composable
 private fun BottomNavItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    val tintColor = if (selected) Color(0xFF65D6D0) else Color(0xFFB8F6FF)
+    val textColor = if (selected) Color(0xFF65D6D0) else Color(0xFFB7C3D5)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
+    ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = Color(0xFFB8F6FF),
+            tint = tintColor,
             modifier = Modifier.size(27.dp)
         )
 
         Text(
             text = label,
-            color = Color(0xFFB7C3D5),
-            fontSize = 12.sp
+            color = textColor,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
     }
 }
