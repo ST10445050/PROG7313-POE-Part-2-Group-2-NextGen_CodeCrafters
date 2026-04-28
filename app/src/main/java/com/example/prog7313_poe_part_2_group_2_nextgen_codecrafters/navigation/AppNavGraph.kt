@@ -1,7 +1,6 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.navigation
 
 import android.net.Uri
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,8 +14,9 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.Ques
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.Question4Screen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.Question5Screen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.RegisterScreen
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.dashboard.DashboardScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.ResetEmailScreen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.categories.CategoryScreen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.dashboard.DashboardScreen
 
 @Composable
 fun AppNavGraph() {
@@ -92,8 +92,15 @@ fun AppNavGraph() {
 
         composable("dashboard/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-            DashboardScreen(userId)
 
+            DashboardScreen(
+                userId = userId,
+                navController = navController
+            )
+        }
+
+        composable("categories") {
+            CategoryScreen()
         }
     }
 }

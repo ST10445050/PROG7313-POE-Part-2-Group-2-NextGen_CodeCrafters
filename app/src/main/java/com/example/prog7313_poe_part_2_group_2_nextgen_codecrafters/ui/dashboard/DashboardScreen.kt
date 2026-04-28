@@ -2,6 +2,7 @@ package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.dashboar
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,6 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.QuestionnaireAnswers
@@ -30,8 +31,10 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entitie
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
 
 @Composable
-fun DashboardScreen(userId: Int) {
-
+fun DashboardScreen(
+    userId: Int,
+    navController: NavController
+) {
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
 
@@ -44,10 +47,8 @@ fun DashboardScreen(userId: Int) {
     }
 
     val userName = user?.name ?: "User"
-
     val monthlyBudget = answers?.monthlyIncome ?: 0.0
     val savingsGoal = answers?.monthlySavingsGoal ?: 0.0
-
     val amountSpent = 0.0
     val usedPercentage = 0
     val remaining = monthlyBudget - amountSpent
@@ -67,7 +68,6 @@ fun DashboardScreen(userId: Int) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -82,7 +82,6 @@ fun DashboardScreen(userId: Int) {
                 .padding(horizontal = 18.dp)
                 .padding(top = 32.dp, bottom = 90.dp)
         ) {
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -123,12 +122,7 @@ fun DashboardScreen(userId: Int) {
             Spacer(modifier = Modifier.height(22.dp))
 
             DashboardCard {
-                Text(
-                    "Monthly Budget Overview",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Monthly Budget Overview", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
 
                 Spacer(modifier = Modifier.height(18.dp))
 
@@ -137,27 +131,11 @@ fun DashboardScreen(userId: Int) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    Text(
-                        text = "R${monthlyBudget.toInt()}",
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("R${monthlyBudget.toInt()}", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
 
                     Row {
-                        Text(
-                            text = "$usedPercentage%",
-                            color = FinTrackMint,
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = " Used",
-                            color = Color.White,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold
-
-                        )
+                        Text("$usedPercentage%", color = FinTrackMint, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                        Text(" Used", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -165,9 +143,7 @@ fun DashboardScreen(userId: Int) {
 
                 LinearProgressIndicator(
                     progress = { 0f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(10.dp),
+                    modifier = Modifier.fillMaxWidth().height(10.dp),
                     color = FinTrackLime,
                     trackColor = FinTrackTeal.copy(alpha = 0.45f)
                 )
@@ -193,21 +169,12 @@ fun DashboardScreen(userId: Int) {
             Spacer(modifier = Modifier.height(18.dp))
 
             DashboardCard {
-                Text(
-                    "Spending Summary",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Spending Summary", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
 
                 Spacer(modifier = Modifier.height(14.dp))
 
                 if (categories.isEmpty()) {
-                    Text(
-                        "No spending categories selected yet.",
-                        color = Color.White.copy(alpha = 0.75f),
-                        fontSize = 16.sp
-                    )
+                    Text("No spending categories selected yet.", color = Color.White.copy(alpha = 0.75f), fontSize = 16.sp)
                 } else {
                     categories.take(4).forEachIndexed { index, category ->
                         SpendingRow(
@@ -235,12 +202,7 @@ fun DashboardScreen(userId: Int) {
             Spacer(modifier = Modifier.height(18.dp))
 
             DashboardCard {
-                Text(
-                    "Personalised Goal",
-                    color = Color.White,
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Personalised Goal", color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Bold)
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -294,6 +256,7 @@ fun DashboardScreen(userId: Int) {
         }
 
         BottomDashboardNav(
+            navController = navController,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
@@ -304,10 +267,7 @@ private fun DashboardCard(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Color(0xCC071827),
-                RoundedCornerShape(18.dp)
-            )
+            .background(Color(0xCC071827), RoundedCornerShape(18.dp))
             .padding(18.dp),
         content = content
     )
@@ -330,16 +290,10 @@ private fun SpendingRow(
     color: Color
 ) {
     Column(modifier = Modifier.padding(bottom = 12.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(25.dp))
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Text(title, color = Color.White, fontSize = 20.sp, modifier = Modifier.weight(1f))
-
             Text(amount, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
 
@@ -347,10 +301,7 @@ private fun SpendingRow(
 
         LinearProgressIndicator(
             progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 38.dp)
-                .height(7.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 38.dp).height(7.dp),
             color = color,
             trackColor = Color(0xFF17354A)
         )
@@ -362,12 +313,7 @@ private fun QuickAction(icon: String, label: String, modifier: Modifier) {
     Row(
         modifier = modifier
             .height(62.dp)
-            .background(
-                Brush.horizontalGradient(
-                    listOf(FinTrackLime, FinTrackTeal)
-                ),
-                RoundedCornerShape(10.dp)
-            )
+            .background(Brush.horizontalGradient(listOf(FinTrackLime, FinTrackTeal)), RoundedCornerShape(10.dp))
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -378,7 +324,10 @@ private fun QuickAction(icon: String, label: String, modifier: Modifier) {
 }
 
 @Composable
-private fun BottomDashboardNav(modifier: Modifier = Modifier) {
+private fun BottomDashboardNav(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -388,22 +337,36 @@ private fun BottomDashboardNav(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BottomItem(Icons.Default.Home, "Dashboard", true)
-        BottomItem(Icons.Outlined.CreditCard, "Expenses", false)
-        BottomItem(Icons.Outlined.Folder, "Categories", false)
-        BottomItem(Icons.Default.Settings, "Settings", false)
+        BottomItem(Icons.Default.Home, "Dashboard", true) {}
+
+        BottomItem(Icons.Outlined.CreditCard, "Expenses", false) {}
+
+        BottomItem(Icons.Outlined.Folder, "Categories", false) {
+            navController.navigate("categories")
+        }
+
+        BottomItem(Icons.Default.Settings, "Settings", false) {}
     }
 }
 
 @Composable
-private fun BottomItem(icon: ImageVector, label: String, selected: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun BottomItem(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
+    ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = if (selected) FinTrackMint else Color.White.copy(alpha = 0.65f),
             modifier = Modifier.size(28.dp)
         )
+
         Text(
             text = label,
             color = if (selected) FinTrackMint else Color.White.copy(alpha = 0.65f),
