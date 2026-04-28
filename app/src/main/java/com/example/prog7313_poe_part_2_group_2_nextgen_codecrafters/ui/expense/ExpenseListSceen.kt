@@ -7,14 +7,33 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseListScreen(userId: Int, viewModel: ExpenseViewModel) {
+fun ExpenseListScreen(
+    userId: Int,
+    viewModel: ExpenseViewModel,
+    navController: NavController // Added NavController parameter
+) {
     val expenseList by viewModel.getExpensesForUser(userId).collectAsState(initial = emptyList())
 
-    Scaffold(topBar = { SmallTopAppBar(title = { Text("My Expenses") }) }) { padding ->
-        LazyColumn(modifier = Modifier.padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Scaffold(
+        topBar = {
+            SmallTopAppBar(title = { Text("My Expenses") })
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { navController.navigate("add_expense/$userId") }) {
+                Text("+")
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items(expenseList) { expense ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {

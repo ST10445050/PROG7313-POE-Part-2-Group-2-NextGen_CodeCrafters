@@ -48,19 +48,23 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    implementation(libs.androidx.navigation.compose)
+
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    implementation(libs.androidx.navigation.compose)
 
-    // ADDED: Coil for image loading to display your receipts
+    implementation("androidx.compose.material:material-icons-extended")
+
+
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     testImplementation(libs.junit)
