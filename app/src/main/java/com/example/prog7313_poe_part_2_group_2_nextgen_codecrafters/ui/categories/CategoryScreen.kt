@@ -72,15 +72,14 @@ fun CategoryScreen(
                 )
 
                 LazyColumn(
+                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.weight(1f)
+                    contentPadding = PaddingValues(bottom = 12.dp)
                 ) {
                     items(categories) { category ->
                         CategoryCard(category.name)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
 
                 AddCategoryBox(viewModel)
             }
@@ -198,44 +197,35 @@ private fun getCategoryIconData(categoryName: String): CategoryIconData {
     val name = categoryName.lowercase()
 
     return when {
-
-        // 🛒 GROCERIES (trolley)
         name.contains("grocery") || name.contains("groceries") ->
             CategoryIconData("🛒", Color(0xFF26483B))
 
-        // 🍗 FOOD (chicken)
         name.contains("food") || name.contains("meal") || name.contains("restaurant") ->
             CategoryIconData("🍗", Color(0xFF5A3A1F))
 
-        // 🚗 TRANSPORT
         name.contains("transport") || name.contains("car") || name.contains("taxi") || name.contains("fuel") ->
             CategoryIconData("🚗", Color(0xFF1F4B5A))
 
-        // 👕 CLOTHING
         name.contains("clothing") || name.contains("clothes") || name.contains("shirt") ->
             CategoryIconData("👕", Color(0xFF285A70))
 
-        // 🎮 ENTERTAINMENT
         name.contains("entertainment") || name.contains("game") || name.contains("movie") ->
             CategoryIconData("🎮", Color(0xFF47375F))
 
-        // 🧾 BILLS
         name.contains("bill") || name.contains("electricity") || name.contains("water") ->
             CategoryIconData("🧾", Color(0xFF5A3654))
 
-        // 📚 EDUCATION
         name.contains("school") || name.contains("education") || name.contains("book") ->
             CategoryIconData("📚", Color(0xFF514A28))
 
-        // 💊 HEALTH
         name.contains("health") || name.contains("medical") || name.contains("doctor") ->
             CategoryIconData("💊", Color(0xFF4A2F3D))
 
-        // 💡 GENERAL / OTHER (important fallback)
         else ->
             CategoryIconData("💡", Color(0xFF2E3A46))
     }
 }
+
 @Composable
 private fun AddCategoryBox(viewModel: CategoryViewModel) {
     Column(
