@@ -16,6 +16,7 @@ fun CategoryTotalsScreen(
     userId: Int,
     expenseDao: ExpenseDao
 ) {
+    
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
     var totals by remember { mutableStateOf(listOf<CategoryTotal>()) }
