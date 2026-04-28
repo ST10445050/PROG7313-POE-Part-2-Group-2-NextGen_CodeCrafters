@@ -3,7 +3,6 @@ package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense
 import android.app.TimePickerDialog
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -43,20 +42,24 @@ fun AddExpenseScreen(
     var showDateDialog by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
-        imageUri = it
-    }
-
     val categories = listOf("Groceries", "Transport", "Entertainment", "Utilities")
     var expanded by remember { mutableStateOf(false) }
 
+    // ✅ FILE EXPLORER (FIXED)
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        imageUri = uri
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
         Text("Add New Expense", style = MaterialTheme.typography.headlineMedium)
-
 
         OutlinedTextField(
             value = amount,
@@ -65,7 +68,6 @@ fun AddExpenseScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
-
 
         ExposedDropdownMenuBox(
             expanded = expanded,
@@ -96,7 +98,6 @@ fun AddExpenseScreen(
             }
         }
 
-
         OutlinedTextField(
             value = date,
             onValueChange = {},
@@ -117,7 +118,7 @@ fun AddExpenseScreen(
                     TextButton(onClick = {
                         datePickerState.selectedDateMillis?.let {
                             val cal = Calendar.getInstance().apply { timeInMillis = it }
-                            date = "${cal.get(Calendar.DAY_OF_MONTH)}/${cal.get(Calendar.MONTH)+1}/${cal.get(Calendar.YEAR)}"
+                            date = "${cal.get(Calendar.DAY_OF_MONTH)}/${cal.get(Calendar.MONTH) + 1}/${cal.get(Calendar.YEAR)}"
                         }
                         showDateDialog = false
                     }) { Text("OK") }
@@ -126,7 +127,6 @@ fun AddExpenseScreen(
                 DatePicker(state = datePickerState)
             }
         }
-
 
         OutlinedTextField(
             value = startTime,
@@ -151,7 +151,6 @@ fun AddExpenseScreen(
             }
         )
 
-
         OutlinedTextField(
             value = endTime,
             onValueChange = {},
@@ -175,7 +174,6 @@ fun AddExpenseScreen(
             }
         )
 
-        // Description
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
@@ -183,18 +181,15 @@ fun AddExpenseScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-
+        // ✅ FILE EXPLORER BUTTON
         Button(
             onClick = {
-                launcher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                )
+                launcher.launch("*/*") // or "image/*" if only images
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (imageUri == null) "Upload Receipt" else "Receipt Selected")
+            Text(if (imageUri == null) "Upload Receipt" else "File Selected")
         }
-
 
         Button(
             onClick = {
@@ -202,7 +197,8 @@ fun AddExpenseScreen(
                     viewModel.addExpense(
                         Expense(
                             userId = userId,
-                            categoryId = if (selectedCategory.isNotEmpty()) categories.indexOf(selectedCategory) + 1 else 0,
+                            categoryId = if (selectedCategory.isNotEmpty())
+                                categories.indexOf(selectedCategory) + 1 else 0,
                             date = date,
                             startTime = startTime,
                             endTime = endTime,
