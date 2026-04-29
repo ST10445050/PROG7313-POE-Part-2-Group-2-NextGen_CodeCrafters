@@ -7,16 +7,18 @@ import androidx.room.RoomDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.ExpenseDao
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Expense
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Category
-
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.BudgetGoalDao
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.BudgetGoal
 
 @Database(
-    entities = [Expense::class, Category::class],
+    entities = [Expense::class, Category::class, BudgetGoal::class],
     version = 1,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun expenseDao(): ExpenseDao
+    abstract fun budgetGoalDao(): BudgetGoalDao
 
     companion object {
         @Volatile

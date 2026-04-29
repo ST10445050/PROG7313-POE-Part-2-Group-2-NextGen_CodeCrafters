@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.budget.BudgetGoalScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.reports.CategoryTotalsScreen
 
 class MainActivity : ComponentActivity() {
@@ -27,12 +28,14 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun FinTrackApp() {
 
-    // Opens Category screen first
-    var currentScreen by remember { mutableStateOf("Categories") }
+    // Opens Budget Goals screen first
+    var currentScreen by remember { mutableStateOf("Goals") }
 
     val context = LocalContext.current
     val database = AppDatabase.getDatabase(context)
+
     val expenseDao = database.expenseDao()
+    val budgetGoalDao = database.budgetGoalDao()
 
     MaterialTheme {
         Scaffold { innerPadding ->
@@ -53,7 +56,10 @@ fun FinTrackApp() {
                         expenseDao = expenseDao
                     )
 
-                    "Goals" -> GoalsScreen()
+                    "Goals" -> BudgetGoalScreen(
+                        userId = 1,
+                        budgetGoalDao = budgetGoalDao
+                    )
                 }
             }
         }
@@ -77,23 +83,5 @@ fun HomeScreen() {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text("Your personal budget tracker")
-    }
-}
-
-@Composable
-fun GoalsScreen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Financial Goals",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("No goals set yet.")
     }
 }
