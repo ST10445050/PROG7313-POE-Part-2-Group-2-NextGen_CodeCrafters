@@ -23,6 +23,7 @@ fun AppNavGraph() {
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
 
+
     val expenseViewModel = remember {
         ExpenseViewModel(
             context.applicationContext as Application,
@@ -98,10 +99,10 @@ fun AppNavGraph() {
 
             CategoryTotalsScreen(
                 userId = userId,
-                expenseDao = db.expenseDao()
+                expenseDao = db.expenseDao(),
+                navController = navController
             )
         }
-
         composable("expense_list/{userId}") {
             val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
             ExpenseListScreen(userId, expenseViewModel, navController)
