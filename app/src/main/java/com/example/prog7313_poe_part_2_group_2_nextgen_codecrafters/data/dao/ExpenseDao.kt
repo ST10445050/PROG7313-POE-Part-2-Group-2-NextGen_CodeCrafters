@@ -11,29 +11,39 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ExpenseDao {
 
-    // Insert a new expense
     @Insert
     suspend fun insertExpense(expense: Expense)
 
     @Query("""
-    SELECT 
-        e.expenseId,
-        e.userId,
-        e.categoryId,
-        c.name AS categoryName,
-        e.date,
-        e.amount
-    FROM expenses e
-    INNER JOIN categories c ON e.categoryId = c.categoryId
-    WHERE e.userId = :userId
-""")
+        SELECT 
+            e.expenseId,
+            e.userId,
+            e.categoryId,
+            c.name AS categoryName,
+            e.date,
+            e.amount
+        FROM expenses e
+        INNER JOIN categories c ON e.categoryId = c.categoryId
+        WHERE e.userId = :userId
+        ORDER BY e.date DESC, e.startTime DESC
+    """)
     fun getExpensesWithCategoryForUser(userId: Int): Flow<List<ExpenseWithCategory>>
 
-    // Get all expenses for a specific user
-    @Query("SELECT * FROM expenses WHERE userId = :userId")
+    @Query("SELECT * FROM expenses WHERE userId = :userId ORDER BY date DESC, startTime DESC")
     fun getExpensesForUser(userId: Int): Flow<List<Expense>>
 
-    // Category Totals Report
+    @Query("""
+        SELECT * FROM expenses 
+        WHERE userId = :userId 
+        AND date BETWEEN :startDate AND :endDate 
+        ORDER BY date DESC, startTime DESC
+    """)
+    fun getExpensesForUserByDateRange(
+        userId: Int,
+        startDate: String,
+        endDate: String
+    ): Flow<List<Expense>>
+
     @Query("""
         SELECT c.name as categoryName, SUM(e.amount) as totalAmount
         FROM expenses e
