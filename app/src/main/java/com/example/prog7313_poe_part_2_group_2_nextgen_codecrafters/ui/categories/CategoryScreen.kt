@@ -328,8 +328,9 @@ private fun BottomNavBar(
         }
 
         BottomNavItem(Icons.Default.List, "Expenses", selected = false) {
-            navController.navigate("expenses/$userId") {
+            navController.navigate("expense_list/$userId") {
                 launchSingleTop = true
+
             }
         }
 

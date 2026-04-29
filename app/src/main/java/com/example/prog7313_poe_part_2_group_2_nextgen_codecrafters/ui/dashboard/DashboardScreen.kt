@@ -28,18 +28,24 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.QuestionnaireAnswers
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.User
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
 
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    userId: Int
+    userId: Int,
+    expenseViewModel: ExpenseViewModel
 ) {
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
 
     var user by remember { mutableStateOf<User?>(null) }
     var answers by remember { mutableStateOf<QuestionnaireAnswers?>(null) }
+
+    val expenses by expenseViewModel
+        .getExpensesForUser(userId)
+        .collectAsState(initial = emptyList())
 
     LaunchedEffect(userId) {
         user = db.userDao().getUserById(userId)
@@ -49,15 +55,29 @@ fun DashboardScreen(
     val userName = user?.name ?: "User"
     val monthlyBudget = answers?.monthlyIncome ?: 0.0
     val savingsGoal = answers?.monthlySavingsGoal ?: 0.0
-    val amountSpent = 0.0
-    val usedPercentage = 0
+
+    val amountSpent = expenses.sumOf { it.amount }
     val remaining = monthlyBudget - amountSpent
+
+    val usedPercentage = if (monthlyBudget > 0) {
+        ((amountSpent / monthlyBudget) * 100).toInt()
+    } else {
+        0
+    }
+
+    val progressValue = if (monthlyBudget > 0) {
+        (amountSpent / monthlyBudget).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
+    }
 
     val categories = answers?.spendingCategories
         ?.split(",")
         ?.map { it.trim() }
         ?.filter { it.isNotBlank() }
         ?: emptyList()
+
+    val recentExpenses = expenses.takeLast(3).reversed()
 
     val personalisedMessage = when (answers?.financialGoal) {
         "Save more money" -> "Your dashboard is focused on saving and reaching your monthly savings goal."
@@ -142,7 +162,7 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 LinearProgressIndicator(
-                    progress = { 0f },
+                    progress = { progressValue },
                     modifier = Modifier.fillMaxWidth().height(10.dp),
                     color = FinTrackLime,
                     trackColor = FinTrackTeal.copy(alpha = 0.45f)
@@ -177,17 +197,27 @@ fun DashboardScreen(
                     Text("No spending categories selected yet.", color = Color.White.copy(alpha = 0.75f), fontSize = 16.sp)
                 } else {
                     categories.take(4).forEachIndexed { index, category ->
+
+                        val categoryTotal = expenses
+                            .filter { it.categoryId == index + 1 }
+                            .sumOf { it.amount }
+
                         SpendingRow(
                             icon = when (category.lowercase()) {
                                 "groceries" -> Icons.Outlined.ShoppingBasket
                                 "transport" -> Icons.Outlined.DirectionsCar
                                 "subscriptions" -> Icons.Outlined.Receipt
                                 "shopping" -> Icons.Outlined.ShoppingCart
+                                "food", "eating out" -> Icons.Outlined.Restaurant
                                 else -> Icons.Outlined.Category
                             },
                             title = category,
-                            amount = "R0",
-                            progress = 0f,
+                            amount = "R${categoryTotal.toInt()}",
+                            progress = if (monthlyBudget > 0) {
+                                (categoryTotal / monthlyBudget).toFloat().coerceIn(0f, 1f)
+                            } else {
+                                0f
+                            },
                             color = listOf(
                                 FinTrackLime,
                                 FinTrackMint,
@@ -228,9 +258,15 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    QuickAction("✚", "Add\nExpense", Modifier.weight(1f))
-                    QuickAction("▥", "View\nInsights", Modifier.weight(1f))
-                    QuickAction("✪", "Budget\nGoals", Modifier.weight(1f))
+                    QuickAction("✚", "Add\nExpense", Modifier.weight(1f)) {
+                        navController.navigate("add_expense/$userId") {
+                            launchSingleTop = true
+                        }
+                    }
+
+                    QuickAction("▥", "View\nInsights", Modifier.weight(1f)) {}
+
+                    QuickAction("✪", "Budget\nGoals", Modifier.weight(1f)) {}
                 }
             }
 
@@ -247,11 +283,37 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             DashboardCard {
-                Text(
-                    text = "No expenses yet. Add your first expense to start tracking.",
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 16.sp
-                )
+                if (recentExpenses.isEmpty()) {
+                    Text(
+                        text = "No expenses yet. Add your first expense to start tracking.",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 16.sp
+                    )
+                } else {
+                    recentExpenses.forEach { expense ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = expense.description.ifBlank { "Expense" },
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Text(
+                                text = "R${expense.amount.toInt()}",
+                                color = FinTrackMint,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -304,10 +366,16 @@ private fun SpendingRow(icon: ImageVector, title: String, amount: String, progre
 }
 
 @Composable
-private fun QuickAction(icon: String, label: String, modifier: Modifier) {
+private fun QuickAction(
+    icon: String,
+    label: String,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
     Row(
         modifier = modifier
             .height(62.dp)
+            .clickable { onClick() }
             .background(Brush.horizontalGradient(listOf(FinTrackLime, FinTrackTeal)), RoundedCornerShape(10.dp))
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -333,49 +401,21 @@ private fun BottomDashboardNav(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BottomItem(
-            icon = Icons.Default.Home,
-            label = "Dashboard",
-            selected = true,
-            onClick = {
-                navController.navigate("dashboard/$userId") {
-                    launchSingleTop = true
-                }
-            }
-        )
+        BottomItem(Icons.Default.Home, "Dashboard", true) {
+            navController.navigate("dashboard/$userId") { launchSingleTop = true }
+        }
 
-        BottomItem(
-            icon = Icons.Outlined.CreditCard,
-            label = "Expenses",
-            selected = false,
-            onClick = {
-                navController.navigate("expenses/$userId") {
-                    launchSingleTop = true
-                }
-            }
-        )
+        BottomItem(Icons.Outlined.CreditCard, "Expenses", false) {
+            navController.navigate("expense_list/$userId") { launchSingleTop = true }
+        }
 
-        BottomItem(
-            icon = Icons.Outlined.Folder,
-            label = "Categories",
-            selected = false,
-            onClick = {
-                navController.navigate("categories/$userId") {
-                    launchSingleTop = true
-                }
-            }
-        )
+        BottomItem(Icons.Outlined.Folder, "Categories", false) {
+            navController.navigate("categories/$userId") { launchSingleTop = true }
+        }
 
-        BottomItem(
-            icon = Icons.Default.Settings,
-            label = "Settings",
-            selected = false,
-            onClick = {
-                navController.navigate("settings/$userId") {
-                    launchSingleTop = true
-                }
-            }
-        )
+        BottomItem(Icons.Default.Settings, "Settings", false) {
+            navController.navigate("settings/$userId") { launchSingleTop = true }
+        }
     }
 }
 

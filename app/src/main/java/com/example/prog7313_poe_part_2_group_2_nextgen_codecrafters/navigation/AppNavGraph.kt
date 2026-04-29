@@ -1,30 +1,38 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.navigation
 
+import android.app.Application
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.*
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.categories.CategoryScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.dashboard.DashboardScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.AddExpenseScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseListScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun AppNavGraph() {
-
     val navController = rememberNavController()
-    val expenseViewModel: ExpenseViewModel = viewModel()
+    val context = LocalContext.current
+    val db = AppDatabase.getDatabase(context)
+
+    val expenseViewModel = remember {
+        ExpenseViewModel(
+            context.applicationContext as Application,
+            db.expenseDao()
+        )
+    }
 
     NavHost(
         navController = navController,
         startDestination = "landing"
     ) {
-
-        // ---------------- AUTH ----------------
         composable("landing") { LandingScreen(navController) }
         composable("login") { LoginScreen(navController) }
         composable("register") { RegisterScreen(navController) }
@@ -35,7 +43,6 @@ fun AppNavGraph() {
             NewPasswordScreen(navController, email)
         }
 
-        // ---------------- QUESTIONS ----------------
         composable("question1/{userId}") {
             val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
             Question1Screen(navController, userId)
@@ -72,39 +79,35 @@ fun AppNavGraph() {
             Question5Screen(navController, userId, status, income, categories, goal)
         }
 
-        // ---------------- DASHBOARD ----------------
         composable("dashboard/{userId}") {
             val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
-            DashboardScreen(navController, userId)
+            DashboardScreen(
+                navController = navController,
+                userId = userId,
+                expenseViewModel = expenseViewModel
+            )
         }
 
-        // ---------------- CATEGORIES ----------------
         composable("categories/{userId}") {
             val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
             CategoryScreen(navController, userId)
         }
 
-        // ---------------- EXPENSE LIST ----------------
         composable("expense_list/{userId}") {
             val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
-
-            ExpenseListScreen(
-                userId = userId,
-                viewModel = expenseViewModel,
-                navController = navController
-            )
+            ExpenseListScreen(userId, expenseViewModel, navController)
         }
 
-        // ---------------- ADD EXPENSE ----------------
         composable("add_expense/{userId}") {
             val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
-
             AddExpenseScreen(
                 userId = userId,
                 viewModel = expenseViewModel,
                 navController = navController,
                 onSaveSuccess = {
-                    navController.popBackStack()
+                    navController.navigate("expense_list/$userId") {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
