@@ -9,25 +9,29 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.Bud
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.BudgetGoal
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetGoalScreen(
     userId: Int,
     budgetGoalDao: BudgetGoalDao
 ) {
 
-    // Updated input variables
-    var month by remember { mutableStateOf("") }
-    var monthlyBudget by remember { mutableStateOf("") }
+    // Updated variables
+    var selectedMonth by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
 
-    var groceriesLimit by remember { mutableStateOf("") }
-    var transportLimit by remember { mutableStateOf("") }
-    var entertainmentLimit by remember { mutableStateOf("") }
-    var billsLimit by remember { mutableStateOf("") }
-    var clothingLimit by remember { mutableStateOf("") }
+    var minimumBudget by remember { mutableStateOf("") }
+    var maximumBudget by remember { mutableStateOf("") }
 
     var savedGoal by remember { mutableStateOf<BudgetGoal?>(null) }
 
     val scope = rememberCoroutineScope()
+
+    val months = listOf(
+        "January", "February", "March", "April",
+        "May", "June", "July", "August",
+        "September", "October", "November", "December"
+    )
 
     Column(
         modifier = Modifier
@@ -57,68 +61,54 @@ fun BudgetGoalScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Month dropdown
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedMonth,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Select Month") },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        months.forEach { month ->
+                            DropdownMenuItem(
+                                text = { Text(month) },
+                                onClick = {
+                                    selectedMonth = month
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Minimum budget
                 OutlinedTextField(
-                    value = month,
-                    onValueChange = { month = it },
-                    label = { Text("Enter Month") },
+                    value = minimumBudget,
+                    onValueChange = { minimumBudget = it },
+                    label = { Text("Minimum Monthly Budget") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Maximum budget
                 OutlinedTextField(
-                    value = monthlyBudget,
-                    onValueChange = { monthlyBudget = it },
-                    label = { Text("Enter Monthly Budget") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("Category Limits")
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = groceriesLimit,
-                    onValueChange = { groceriesLimit = it },
-                    label = { Text("Groceries Limit") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = transportLimit,
-                    onValueChange = { transportLimit = it },
-                    label = { Text("Transport Limit") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = entertainmentLimit,
-                    onValueChange = { entertainmentLimit = it },
-                    label = { Text("Entertainment Limit") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = billsLimit,
-                    onValueChange = { billsLimit = it },
-                    label = { Text("Bills Limit") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = clothingLimit,
-                    onValueChange = { clothingLimit = it },
-                    label = { Text("Clothing Limit") },
+                    value = maximumBudget,
+                    onValueChange = { maximumBudget = it },
+                    label = { Text("Maximum Monthly Budget") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -129,14 +119,13 @@ fun BudgetGoalScreen(
                         scope.launch {
                             val goal = BudgetGoal(
                                 userId = userId,
-                                month = month.toInt(),
-                                year = 2026, // placeholder since year field removed
-                                minimumGoal = monthlyBudget.toDouble(),
-                                maximumGoal = monthlyBudget.toDouble()
+                                month = months.indexOf(selectedMonth) + 1,
+                                year = 2026,
+                                minimumGoal = minimumBudget.toDouble(),
+                                maximumGoal = maximumBudget.toDouble()
                             )
 
                             budgetGoalDao.insertBudgetGoal(goal)
-
                             savedGoal = goal
                         }
                     },
@@ -149,6 +138,7 @@ fun BudgetGoalScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Saved Goal Display
         savedGoal?.let {
             Card(
                 modifier = Modifier.fillMaxWidth()
@@ -157,9 +147,29 @@ fun BudgetGoalScreen(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text("Saved Budget Goal")
-                    Text("Month: ${it.month}")
-                    Text("Monthly Budget: R${it.minimumGoal}")
+                    Text("Month: $selectedMonth")
+                    Text("Minimum Budget: R${it.minimumGoal}")
+                    Text("Maximum Budget: R${it.maximumGoal}")
                 }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Budget Insights
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("Budget Insights")
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text("• Stay above your minimum budget target")
+                Text("• Avoid exceeding your maximum monthly budget")
+                Text("• Review weekly expenses to stay on track")
             }
         }
     }
