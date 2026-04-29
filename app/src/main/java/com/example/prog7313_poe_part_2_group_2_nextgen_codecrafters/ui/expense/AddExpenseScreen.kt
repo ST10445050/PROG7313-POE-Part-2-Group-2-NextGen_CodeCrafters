@@ -417,6 +417,10 @@ fun AddExpenseScreen(
                 userName = userName,
                 onBudgetGoalsClick = {
                     showMenu = false
+
+                    navController.navigate("budget_goals/$userId") {
+                        launchSingleTop = true
+                    }
                 },
                 onLogoutClick = {
                     showMenu = false

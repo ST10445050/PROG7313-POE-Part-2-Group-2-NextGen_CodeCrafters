@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackMint
 
+// ---------------- TOP BAR ----------------
+
 @Composable
 fun SharedTopBar(
     onMenuClick: () -> Unit,
@@ -37,6 +39,8 @@ fun SharedTopBar(
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+
+        // Optional back button
         if (showBackButton) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
@@ -50,11 +54,13 @@ fun SharedTopBar(
             Spacer(modifier = Modifier.width(14.dp))
         }
 
+        // App title
         Text("Fin", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
         Text("Track", color = FinTrackMint, fontSize = 27.sp, fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.weight(1f))
 
+        // Hamburger menu
         Icon(
             imageVector = Icons.Default.Menu,
             contentDescription = "Open menu",
@@ -65,6 +71,8 @@ fun SharedTopBar(
         )
     }
 }
+
+// ---------------- BOTTOM NAV ----------------
 
 @Composable
 fun SharedBottomNav(
@@ -82,6 +90,7 @@ fun SharedBottomNav(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
+
         SharedBottomNavItem(Icons.Default.Home, "Dashboard", currentScreen == "dashboard") {
             navController.navigate("dashboard/$userId") { launchSingleTop = true }
         }
@@ -94,6 +103,7 @@ fun SharedBottomNav(
             navController.navigate("categories/$userId") { launchSingleTop = true }
         }
 
+        // Optional future screen
         SharedBottomNavItem(Icons.Default.Settings, "Settings", currentScreen == "settings") {
             navController.navigate("settings/$userId") { launchSingleTop = true }
         }
@@ -129,6 +139,8 @@ private fun SharedBottomNavItem(
     }
 }
 
+// ---------------- SIDE MENU ----------------
+
 @Composable
 fun SharedSideMenu(
     modifier: Modifier = Modifier,
@@ -144,6 +156,8 @@ fun SharedSideMenu(
             .background(Color(0xF0111C2D))
             .border(1.dp, Color.White.copy(alpha = 0.10f))
     ) {
+
+        // Header section
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -159,7 +173,7 @@ fun SharedSideMenu(
                 )
 
                 Text(
-                    text = "$userName 👋",
+                    text = "$userName",
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
@@ -185,6 +199,7 @@ fun SharedSideMenu(
 
         Divider(color = Color.White.copy(alpha = 0.08f))
 
+        // Budget Goals navigation item
         SharedMenuItem(
             icon = Icons.Default.TrackChanges,
             title = "Budget Goals",
@@ -194,6 +209,7 @@ fun SharedSideMenu(
 
         Divider(color = Color.White.copy(alpha = 0.08f))
 
+        // Logout item
         SharedMenuItem(
             icon = Icons.Default.PowerSettingsNew,
             title = "Logout",
@@ -204,6 +220,8 @@ fun SharedSideMenu(
         Divider(color = Color.White.copy(alpha = 0.08f))
     }
 }
+
+// ---------------- MENU ITEM ----------------
 
 @Composable
 private fun SharedMenuItem(

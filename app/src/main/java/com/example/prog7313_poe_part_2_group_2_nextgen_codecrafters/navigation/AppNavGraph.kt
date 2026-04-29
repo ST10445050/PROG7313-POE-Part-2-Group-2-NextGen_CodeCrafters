@@ -15,6 +15,7 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.dashboard
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.AddExpenseScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseListScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.budget.BudgetGoalScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.reports.CategoryTotalsScreen
 
 @Composable
@@ -103,6 +104,18 @@ fun AppNavGraph() {
                 navController = navController
             )
         }
+
+        composable("budget_goals/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments
+                ?.getString("userId")
+                ?.toIntOrNull() ?: 0
+
+            BudgetGoalScreen(
+                userId = userId,
+                budgetGoalDao = db.budgetGoalDao()
+            )
+        }
+
         composable("expense_list/{userId}") {
             val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
             ExpenseListScreen(userId, expenseViewModel, navController)

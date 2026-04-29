@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.BudgetGoalDao
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.CategoryDao
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.ExpenseDao
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.QuestionnaireDao
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.UserDao
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.BudgetGoal
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Category
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Expense
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.QuestionnaireAnswers
@@ -18,9 +20,10 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entitie
         User::class,
         QuestionnaireAnswers::class,
         Category::class,
-        Expense::class
+        Expense::class,
+        BudgetGoal::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun questionnaireDao(): QuestionnaireDao
     abstract fun categoryDao(): CategoryDao
     abstract fun expenseDao(): ExpenseDao
+    abstract fun budgetGoalDao(): BudgetGoalDao
 
     companion object {
         @Volatile
