@@ -15,6 +15,7 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.dashboard
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.AddExpenseScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseListScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.reports.CategoryTotalsScreen
 
 @Composable
 fun AppNavGraph() {
@@ -91,6 +92,14 @@ fun AppNavGraph() {
         composable("categories/{userId}") {
             val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
             CategoryScreen(navController, userId)
+        }
+        composable("category_totals/{userId}") {
+            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+
+            CategoryTotalsScreen(
+                userId = userId,
+                expenseDao = db.expenseDao()
+            )
         }
 
         composable("expense_list/{userId}") {

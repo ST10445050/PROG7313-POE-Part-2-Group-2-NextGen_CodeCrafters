@@ -10,6 +10,7 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.navigation.A
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackTheme
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
