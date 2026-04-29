@@ -10,7 +10,7 @@ FinTrack is a mobile budgeting application developed as part of the **PROG7313 â
 The application enables users to track their daily expenses, manage categories, and monitor spending habits efficiently.
 
 ðŸ”— **GitHub Repository:**
-https://github.com/ST10445050/PROG7313-POE-Part-2-Group-2-NextGen_CodeCrafters
+https://github.com/EMKNDW/prog7313-g2-2026-poe-group-2.git
 
 ---
 
