@@ -10,7 +10,6 @@ import androidx.compose.ui.unit.dp
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.ExpenseDao
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.model.CategoryTotal
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 @Composable
 fun CategoryTotalsScreen(
@@ -19,7 +18,10 @@ fun CategoryTotalsScreen(
 ) {
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
-    var totals by remember { mutableStateOf(listOf<CategoryTotal>()) }
+
+    var totals by remember {
+        mutableStateOf<List<CategoryTotal>>(emptyList())
+    }
 
     val scope = rememberCoroutineScope()
 
@@ -29,103 +31,143 @@ fun CategoryTotalsScreen(
             .padding(16.dp)
     ) {
 
+        // Heading
         Text(
             text = "Category Totals",
-            style = MaterialTheme.typography.headlineSmall
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Today button
-        Button(onClick = {
-            val today = LocalDate.now().toString()
-
-            scope.launch {
-                totals = expenseDao.getTotalSpentByCategory(
-                    userId,
-                    today,
-                    today
-                )
-            }
-        }) {
-            Text("Today")
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // This Week button
-        Button(onClick = {
-            val today = LocalDate.now()
-            val startOfWeek = today.minusDays(7).toString()
-
-            scope.launch {
-                totals = expenseDao.getTotalSpentByCategory(
-                    userId,
-                    startOfWeek,
-                    today.toString()
-                )
-            }
-        }) {
-            Text("This Week")
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // This Month button
-        Button(onClick = {
-            val today = LocalDate.now()
-            val startOfMonth = today.withDayOfMonth(1).toString()
-
-            scope.launch {
-                totals = expenseDao.getTotalSpentByCategory(
-                    userId,
-                    startOfMonth,
-                    today.toString()
-                )
-            }
-        }) {
-            Text("This Month")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Custom Date Range")
-
-        OutlinedTextField(
-            value = startDate,
-            onValueChange = { startDate = it },
-            label = { Text("Start Date") }
+            style = MaterialTheme.typography.headlineMedium
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedTextField(
-            value = endDate,
-            onValueChange = { endDate = it },
-            label = { Text("End Date") }
+        Text(
+            text = "Track and manage your spending",
+            style = MaterialTheme.typography.bodyMedium
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        Button(onClick = {
-            scope.launch {
-                totals = expenseDao.getTotalSpentByCategory(
-                    userId,
-                    startDate,
-                    endDate
+        // Filter Card
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+
+                Text(
+                    text = "Filter by Date",
+                    style = MaterialTheme.typography.titleMedium
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Quick date buttons row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+
+                    Button(
+                        onClick = {
+                            startDate = "2026-04-29"
+                            endDate = "2026-04-29"
+                        }
+                    ) {
+                        Text("Today")
+                    }
+
+                    Button(
+                        onClick = {
+                            startDate = "2026-04-22"
+                            endDate = "2026-04-29"
+                        }
+                    ) {
+                        Text("This Week")
+                    }
+
+                    Button(
+                        onClick = {
+                            startDate = "2026-04-01"
+                            endDate = "2026-04-29"
+                        }
+                    ) {
+                        Text("This Month")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Custom date section
+                Text(
+                    text = "Custom Date Range",
+                    style = MaterialTheme.typography.titleSmall
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = startDate,
+                    onValueChange = { startDate = it },
+                    label = { Text("Start Date") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = endDate,
+                    onValueChange = { endDate = it },
+                    label = { Text("End Date") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // View totals button
+                Button(
+                    onClick = {
+                        scope.launch {
+                            totals = expenseDao.getTotalSpentByCategory(
+                                userId,
+                                startDate,
+                                endDate
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("View Category Totals")
+                }
             }
-        }) {
-            Text("Custom")
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Results Section
         LazyColumn {
             items(totals) { total ->
-                Text(
-                    text = "${total.categoryName}: R${total.totalAmount}"
-                )
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = total.categoryName,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = "Total: R${total.totalAmount}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
             }
         }
     }

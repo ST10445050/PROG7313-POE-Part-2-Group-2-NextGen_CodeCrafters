@@ -4,10 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,54 +35,7 @@ fun FinTrackApp() {
     val expenseDao = database.expenseDao()
 
     MaterialTheme {
-        Scaffold(
-            bottomBar = {
-                NavigationBar {
-
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                Icons.Default.Home,
-                                contentDescription = "Home"
-                            )
-                        },
-                        label = { Text("Home") },
-                        selected = currentScreen == "Home",
-                        onClick = {
-                            currentScreen = "Home"
-                        }
-                    )
-
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                Icons.Default.List,
-                                contentDescription = "Categories"
-                            )
-                        },
-                        label = { Text("Categories") },
-                        selected = currentScreen == "Categories",
-                        onClick = {
-                            currentScreen = "Categories"
-                        }
-                    )
-
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = "Goals"
-                            )
-                        },
-                        label = { Text("Goals") },
-                        selected = currentScreen == "Goals",
-                        onClick = {
-                            currentScreen = "Goals"
-                        }
-                    )
-                }
-            }
-        ) { innerPadding ->
+        Scaffold { innerPadding ->
 
             Surface(
                 modifier = Modifier
