@@ -11,17 +11,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,6 +27,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.ExpenseDao
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -39,31 +41,35 @@ fun CategoryTotalsScreen(
     expenseDao: ExpenseDao,
     navController: NavController
 ) {
-    // I pull all expenses with their category names so the totals update live.
+    // Loads all expenses with category names so totals update live.
     val allExpenses by expenseDao.getExpensesWithCategoryForUser(userId)
         .collectAsState(initial = emptyList())
 
+    // Tracks the selected date filter.
     var selectedFilter by remember { mutableStateOf("All") }
+
+    // Stores custom start and end date text.
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
 
-    // I use this state to open and close the hamburger menu.
+    // Controls the shared hamburger side menu.
     var showMenu by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
 
-// I store the logged-in user's name for the hamburger menu.
+    // Stores the logged-in user's name for the shared side menu.
     var userName by remember { mutableStateOf("User") }
 
-// I load the real user name from RoomDB using the current userId.
+    // Loads the real user name from RoomDB.
     LaunchedEffect(userId) {
         userName = db.userDao().getUserById(userId)?.name ?: "User"
     }
 
+    // Stores today's date at midnight to make comparisons accurate.
     val today = remember { startOfDay(Calendar.getInstance()) }
 
-    // I filter expenses using Calendar so the app works with minSdk 24.
+    // Filters expenses based on the selected date option.
     val filteredExpenses = allExpenses.filter { expense ->
         val expenseDate = parseExpenseDate(expense.date)
 
@@ -98,7 +104,7 @@ fun CategoryTotalsScreen(
         }
     }
 
-    // I group expenses by category and calculate the total amount spent per category.
+    // Groups expenses by category name and calculates the total amount per category.
     val categoryTotals = filteredExpenses
         .groupBy { it.categoryName }
         .map { (categoryName, expenses) ->
@@ -107,6 +113,7 @@ fun CategoryTotalsScreen(
         .sortedBy { it.first }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // Background image used across the app.
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -119,14 +126,15 @@ fun CategoryTotalsScreen(
                 .fillMaxSize()
                 .padding(bottom = 78.dp)
         ) {
-            CategoryTotalsTopBar(
+            // Shared fixed top bar.
+            SharedTopBar(
+                showBackButton = true,
                 onBackClick = {
                     navController.navigate("categories/$userId") {
                         launchSingleTop = true
                     }
                 },
                 onMenuClick = {
-                    // I open the hamburger menu when the user taps the three lines.
                     showMenu = true
                 }
             )
@@ -151,17 +159,28 @@ fun CategoryTotalsScreen(
                     modifier = Modifier.padding(top = 6.dp, bottom = 18.dp)
                 )
 
-                // I keep All, Today, This Week, and This Month next to one another.
+                // Quick date filters.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    FilterButton("All", selectedFilter) { selectedFilter = "All" }
-                    FilterButton("Today", selectedFilter) { selectedFilter = "Today" }
-                    FilterButton("This Week", selectedFilter) { selectedFilter = "This Week" }
-                    FilterButton("This Month", selectedFilter) { selectedFilter = "This Month" }
+                    FilterButton("All", selectedFilter) {
+                        selectedFilter = "All"
+                    }
+
+                    FilterButton("Today", selectedFilter) {
+                        selectedFilter = "Today"
+                    }
+
+                    FilterButton("This Week", selectedFilter) {
+                        selectedFilter = "This Week"
+                    }
+
+                    FilterButton("This Month", selectedFilter) {
+                        selectedFilter = "This Month"
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
@@ -175,10 +194,13 @@ fun CategoryTotalsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Custom start date input.
                 OutlinedTextField(
                     value = startDate,
                     onValueChange = { startDate = it },
-                    placeholder = { Text("Start Date e.g. 29/4/2026") },
+                    placeholder = {
+                        Text("Start Date e.g. 2026-04-29")
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = fieldColors(),
                     shape = RoundedCornerShape(10.dp),
@@ -187,10 +209,13 @@ fun CategoryTotalsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Custom end date input.
                 OutlinedTextField(
                     value = endDate,
                     onValueChange = { endDate = it },
-                    placeholder = { Text("End Date e.g. 29/4/2026") },
+                    placeholder = {
+                        Text("End Date e.g. 2026-04-29")
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = fieldColors(),
                     shape = RoundedCornerShape(10.dp),
@@ -205,6 +230,7 @@ fun CategoryTotalsScreen(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
+                // Shows an empty message when no totals match the selected date range.
                 if (categoryTotals.isEmpty()) {
                     EmptyTotalsCard()
                 } else {
@@ -221,13 +247,15 @@ fun CategoryTotalsScreen(
             }
         }
 
-        CategoryTotalsBottomNav(
+        // Shared bottom navbar.
+        SharedBottomNav(
             navController = navController,
             userId = userId,
+            currentScreen = "categories",
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // I show the hamburger overlay on top of the totals screen.
+        // Dark overlay and shared side menu.
         if (showMenu) {
             Box(
                 modifier = Modifier
@@ -246,6 +274,7 @@ fun CategoryTotalsScreen(
                 },
                 onLogoutClick = {
                     showMenu = false
+
                     navController.navigate("landing") {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
@@ -253,161 +282,6 @@ fun CategoryTotalsScreen(
                 }
             )
         }
-    }
-}
-
-@Composable
-private fun CategoryTotalsTopBar(
-    onBackClick: () -> Unit,
-    onMenuClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .background(Color(0xEE071827))
-            .padding(horizontal = 18.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Default.ArrowBack,
-            contentDescription = "Back",
-            tint = Color.White,
-            modifier = Modifier
-                .size(34.dp)
-                .clickable { onBackClick() }
-        )
-
-        Spacer(modifier = Modifier.width(14.dp))
-
-        Text("Fin", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
-        Text("Track", color = Color(0xFF65D6D0), fontSize = 27.sp, fontWeight = FontWeight.Bold)
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Icon(
-            imageVector = Icons.Default.Menu,
-            contentDescription = "Open menu",
-            tint = Color.White,
-            modifier = Modifier
-                .size(34.dp)
-                .clickable { onMenuClick() }
-        )
-    }
-}
-
-@Composable
-private fun SharedSideMenu(
-    modifier: Modifier = Modifier,
-    userName: String,
-    onBudgetGoalsClick: () -> Unit,
-    onLogoutClick: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .padding(top = 72.dp, bottom = 78.dp)
-            .width(278.dp)
-            .fillMaxHeight()
-            .background(Color(0xF0111C2D))
-            .border(1.dp, Color.White.copy(alpha = 0.10f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xDD071827))
-                .padding(horizontal = 24.dp, vertical = 22.dp)
-        ) {
-            Row {
-                Text(
-                    text = "Hello ",
-                    color = Color(0xFF65D6D0),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "$userName 👋",
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Let’s manage your finances today.",
-                color = Color.White.copy(alpha = 0.82f),
-                fontSize = 16.sp
-            )
-        }
-
-        Text(
-            text = "MENU",
-            color = Color.White.copy(alpha = 0.58f),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-        )
-
-        Divider(color = Color.White.copy(alpha = 0.08f))
-
-        SharedMenuItem(
-            icon = Icons.Default.Flag,
-            title = "Budget Goals",
-            iconColor = Color(0xFF65D6D0),
-            onClick = onBudgetGoalsClick
-        )
-
-        Divider(color = Color.White.copy(alpha = 0.08f))
-
-        SharedMenuItem(
-            icon = Icons.Default.Logout,
-            title = "Logout",
-            iconColor = Color(0xFFE04F5F),
-            onClick = onLogoutClick
-        )
-    }
-}
-
-@Composable
-private fun SharedMenuItem(
-    icon: ImageVector,
-    title: String,
-    iconColor: Color,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .clickable { onClick() }
-            .padding(horizontal = 28.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = iconColor,
-            modifier = Modifier.size(32.dp)
-        )
-
-        Spacer(modifier = Modifier.width(18.dp))
-
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 21.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f)
-        )
-
-        Icon(
-            imageVector = Icons.Default.KeyboardArrowRight,
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.55f),
-            modifier = Modifier.size(30.dp)
-        )
     }
 }
 
@@ -438,9 +312,9 @@ private fun FilterButton(
                     RoundedCornerShape(22.dp)
                 )
                 .border(
-                    1.dp,
-                    if (selected) Color(0xFF65D6D0) else Color.White.copy(alpha = 0.10f),
-                    RoundedCornerShape(22.dp)
+                    width = 1.dp,
+                    color = if (selected) Color(0xFF65D6D0) else Color.White.copy(alpha = 0.10f),
+                    shape = RoundedCornerShape(22.dp)
                 )
                 .padding(horizontal = 18.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center
@@ -533,69 +407,6 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedContainerColor = Color.Transparent
 )
 
-@Composable
-private fun CategoryTotalsBottomNav(
-    navController: NavController,
-    userId: Int,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(78.dp)
-            .background(Color(0xF5071827))
-            .padding(horizontal = 10.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BottomNavItem(Icons.Default.Home, "Dashboard", false) {
-            navController.navigate("dashboard/$userId") { launchSingleTop = true }
-        }
-
-        BottomNavItem(Icons.Default.List, "Expenses", false) {
-            navController.navigate("expense_list/$userId") { launchSingleTop = true }
-        }
-
-        BottomNavItem(Icons.Default.Folder, "Categories", true) {
-            navController.navigate("categories/$userId") { launchSingleTop = true }
-        }
-
-        BottomNavItem(Icons.Default.Settings, "Settings", false) {
-            navController.navigate("settings/$userId") { launchSingleTop = true }
-        }
-    }
-}
-
-@Composable
-private fun BottomNavItem(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val activeColor = Color(0xFF65D6D0)
-    val inactiveColor = Color.White.copy(alpha = 0.65f)
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (selected) activeColor else inactiveColor,
-            modifier = Modifier.size(27.dp)
-        )
-
-        Text(
-            text = label,
-            color = if (selected) activeColor else inactiveColor,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-        )
-    }
-}
-
 private fun startOfDay(calendar: Calendar): Calendar {
     return calendar.apply {
         set(Calendar.HOUR_OF_DAY, 0)
@@ -612,14 +423,18 @@ private fun calendarDaysAgo(daysAgo: Int): Calendar {
 }
 
 private fun isSameDay(date: java.util.Date, calendar: Calendar): Boolean {
-    val other = Calendar.getInstance().apply { time = date }
+    val other = Calendar.getInstance().apply {
+        time = date
+    }
 
     return other.get(Calendar.YEAR) == calendar.get(Calendar.YEAR) &&
             other.get(Calendar.DAY_OF_YEAR) == calendar.get(Calendar.DAY_OF_YEAR)
 }
 
 private fun isSameMonth(date: java.util.Date, calendar: Calendar): Boolean {
-    val other = Calendar.getInstance().apply { time = date }
+    val other = Calendar.getInstance().apply {
+        time = date
+    }
 
     return other.get(Calendar.YEAR) == calendar.get(Calendar.YEAR) &&
             other.get(Calendar.MONTH) == calendar.get(Calendar.MONTH)
@@ -627,17 +442,19 @@ private fun isSameMonth(date: java.util.Date, calendar: Calendar): Boolean {
 
 private fun parseExpenseDate(dateText: String): java.util.Date? {
     val formats = listOf(
+        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
         SimpleDateFormat("d/M/yyyy", Locale.getDefault()),
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
-        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     )
 
     return formats.firstNotNullOfOrNull { format ->
         try {
             format.isLenient = false
-            startOfDay(Calendar.getInstance().apply {
-                time = format.parse(dateText)!!
-            }).time
+            startOfDay(
+                Calendar.getInstance().apply {
+                    time = format.parse(dateText)!!
+                }
+            ).time
         } catch (e: Exception) {
             null
         }

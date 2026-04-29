@@ -9,11 +9,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,10 +29,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -58,6 +61,10 @@ fun ExpenseListScreen(
     // Controls whether the custom date picker dialog is open.
     var showCustomDatePicker by remember { mutableStateOf(false) }
 
+    // Stores the selected receipt image path.
+    // When this value is not null, the full receipt preview dialog opens.
+    var selectedReceiptImage by remember { mutableStateOf<String?>(null) }
+
     // Loads expenses inside the selected date range.
     val filteredExpenseList by viewModel.getExpensesForUserByDateRange(
         userId = userId,
@@ -65,16 +72,16 @@ fun ExpenseListScreen(
         endDate = endDate
     ).collectAsState(initial = emptyList())
 
-    // If All is selected, show everything. Otherwise show the filtered list.
+    // If All is selected, show every expense. Otherwise, show the filtered list.
     val displayList = if (selectedFilter == "All") expenseList else filteredExpenseList
 
-    // Controls the hamburger menu.
+    // Controls the shared hamburger menu.
     var showMenu by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
 
-    // Stores the user's name for the side menu.
+    // Stores the logged-in user's name for the shared side menu.
     var userName by remember { mutableStateOf("User") }
 
     // Loads the logged-in user's real name from RoomDB.
@@ -83,7 +90,7 @@ fun ExpenseListScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background image.
+        // Background image used behind the screen content.
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -96,7 +103,9 @@ fun ExpenseListScreen(
                 .fillMaxSize()
                 .padding(bottom = 78.dp)
         ) {
-            ExpenseTopBar(
+            // Shared top bar used across the app.
+            SharedTopBar(
+                showBackButton = true,
                 onBackClick = {
                     navController.navigate("dashboard/$userId") {
                         launchSingleTop = true
@@ -187,7 +196,12 @@ fun ExpenseListScreen(
                                 date = formattedDate,
                                 icon = getExpenseIconFromText(expense.description),
                                 iconBg = getExpenseIconColorFromText(expense.description),
-                                photoPath = expense.photoPath
+                                photoPath = expense.photoPath,
+
+                                // Opens the full receipt preview when the expense has an attached photo.
+                                onPhotoClick = {
+                                    selectedReceiptImage = expense.photoPath
+                                }
                             )
                         }
                     }
@@ -236,13 +250,15 @@ fun ExpenseListScreen(
             }
         }
 
-        ExpenseBottomNav(
+        // Shared bottom navigation bar used across the app.
+        SharedBottomNav(
             navController = navController,
             userId = userId,
+            currentScreen = "expenses",
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // Side menu overlay.
+        // Shared side menu overlay.
         if (showMenu) {
             Box(
                 modifier = Modifier
@@ -257,6 +273,7 @@ fun ExpenseListScreen(
                 onBudgetGoalsClick = { showMenu = false },
                 onLogoutClick = {
                     showMenu = false
+
                     navController.navigate("landing") {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
@@ -279,6 +296,73 @@ fun ExpenseListScreen(
                     selectedFilter = "Custom"
                     showCustomDatePicker = false
                 }
+            )
+        }
+
+        // Full receipt image preview.
+        // This opens only when the user clicks on a receipt thumbnail.
+        if (!selectedReceiptImage.isNullOrBlank()) {
+            ReceiptImagePreviewDialog(
+                imagePath = selectedReceiptImage,
+                onClose = {
+                    selectedReceiptImage = null
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReceiptImagePreviewDialog(
+    imagePath: String?,
+    onClose: () -> Unit
+) {
+    Dialog(onDismissRequest = onClose) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 360.dp, max = 650.dp)
+                .background(Color.Black.copy(alpha = 0.96f), RoundedCornerShape(18.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(18.dp))
+                .padding(12.dp)
+        ) {
+            // Full-size receipt image.
+            AsyncImage(
+                model = imagePath,
+                contentDescription = "Full receipt image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+                    .clip(RoundedCornerShape(14.dp)),
+                contentScale = ContentScale.Fit
+            )
+
+            // Close button in the top-right corner.
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(42.dp)
+                    .background(Color.Black.copy(alpha = 0.65f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close receipt preview",
+                    tint = Color.White,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+
+            // Small label at the bottom so the user knows what they are viewing.
+            Text(
+                text = "Receipt Preview",
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 14.dp, vertical = 7.dp)
             )
         }
     }
@@ -378,7 +462,6 @@ private fun CustomDateRangeDialog(
         initialSelectedEndDateMillis = parseDateToMillis(endDate),
 
         // Opens the picker as a proper calendar instead of text input.
-        // This lets the user move between months using the calendar arrows.
         initialDisplayMode = DisplayMode.Picker
     )
 
@@ -440,10 +523,7 @@ private fun CustomDateRangeDialog(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             },
-
-
             showModeToggle = true,
-
             colors = DatePickerDefaults.colors(
                 containerColor = Color(0xFF101B2D),
                 titleContentColor = Color.White,
@@ -461,162 +541,6 @@ private fun CustomDateRangeDialog(
         )
     }
 }
-@Composable
-private fun ExpenseTopBar(
-    onBackClick: () -> Unit,
-    onMenuClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .background(Color(0xEE071827))
-            .padding(horizontal = 18.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Default.ArrowBack,
-            contentDescription = "Back",
-            tint = Color.White,
-            modifier = Modifier
-                .size(34.dp)
-                .clickable { onBackClick() }
-        )
-
-        Spacer(modifier = Modifier.width(14.dp))
-
-        Text("Fin", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
-        Text("Track", color = Color(0xFF65D6D0), fontSize = 27.sp, fontWeight = FontWeight.Bold)
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Icon(
-            imageVector = Icons.Default.Menu,
-            contentDescription = "Open menu",
-            tint = Color.White,
-            modifier = Modifier
-                .size(34.dp)
-                .clickable { onMenuClick() }
-        )
-    }
-}
-
-@Composable
-private fun SharedSideMenu(
-    modifier: Modifier = Modifier,
-    userName: String,
-    onBudgetGoalsClick: () -> Unit,
-    onLogoutClick: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .padding(top = 72.dp, bottom = 78.dp)
-            .width(278.dp)
-            .fillMaxHeight()
-            .background(Color(0xF0111C2D))
-            .border(1.dp, Color.White.copy(alpha = 0.10f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xDD071827))
-                .padding(horizontal = 24.dp, vertical = 22.dp)
-        ) {
-            Row {
-                Text(
-                    text = "Hello ",
-                    color = Color(0xFF65D6D0),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "$userName 👋",
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Let’s manage your finances today.",
-                color = Color.White.copy(alpha = 0.82f),
-                fontSize = 16.sp
-            )
-        }
-
-        Text(
-            text = "MENU",
-            color = Color.White.copy(alpha = 0.58f),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-        )
-
-        Divider(color = Color.White.copy(alpha = 0.08f))
-
-        SharedMenuItem(
-            icon = Icons.Default.TrackChanges,
-            title = "Budget Goals",
-            iconColor = Color(0xFF65D6D0),
-            onClick = onBudgetGoalsClick
-        )
-
-        Divider(color = Color.White.copy(alpha = 0.08f))
-
-        SharedMenuItem(
-            icon = Icons.Default.PowerSettingsNew,
-            title = "Logout",
-            iconColor = Color(0xFFE04F5F),
-            onClick = onLogoutClick
-        )
-
-        Divider(color = Color.White.copy(alpha = 0.08f))
-    }
-}
-
-@Composable
-private fun SharedMenuItem(
-    icon: ImageVector,
-    title: String,
-    iconColor: Color,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .clickable { onClick() }
-            .padding(horizontal = 28.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = iconColor,
-            modifier = Modifier.size(32.dp)
-        )
-
-        Spacer(modifier = Modifier.width(18.dp))
-
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 21.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f)
-        )
-
-        Icon(
-            imageVector = Icons.Default.KeyboardArrowRight,
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.55f),
-            modifier = Modifier.size(30.dp)
-        )
-    }
-}
 
 @Composable
 private fun ExpenseCard(
@@ -625,7 +549,8 @@ private fun ExpenseCard(
     date: String,
     icon: ImageVector,
     iconBg: Color,
-    photoPath: String?
+    photoPath: String?,
+    onPhotoClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -664,21 +589,50 @@ private fun ExpenseCard(
         Spacer(modifier = Modifier.width(10.dp))
 
         if (!photoPath.isNullOrBlank()) {
-            AsyncImage(
-                model = photoPath,
-                contentDescription = "Receipt photo",
+            // Clickable receipt thumbnail.
+            // Only records with a photo attached will open the full preview.
+            Box(
                 modifier = Modifier
                     .size(50.dp)
-                    .clip(RoundedCornerShape(10.dp)),
-                contentScale = ContentScale.Crop
-            )
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, Color(0xFF65D6D0).copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                    .clickable { onPhotoClick() }
+            ) {
+                AsyncImage(
+                    model = photoPath,
+                    contentDescription = "Receipt photo",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Small visibility icon to show the user the image can be viewed.
+                Icon(
+                    imageVector = Icons.Default.Visibility,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(20.dp)
+                        .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                        .padding(3.dp)
+                )
+            }
         } else {
+            // Empty placeholder shown when no photo was attached.
             Box(
                 modifier = Modifier
                     .size(50.dp)
                     .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(10.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
-            )
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ImageNotSupported,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.35f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(10.dp))
@@ -829,77 +783,6 @@ private fun getExpenseIconColorFromText(description: String): Color {
                 text.contains("total") -> Color(0xFFE87500)
 
         else -> Color(0xFF2E3A46)
-    }
-}
-
-@Composable
-private fun ExpenseBottomNav(
-    navController: NavController,
-    userId: Int,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(78.dp)
-            .background(Color(0xF5071827))
-            .padding(horizontal = 10.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BottomNavItem(Icons.Default.Home, "Dashboard", false) {
-            navController.navigate("dashboard/$userId") {
-                launchSingleTop = true
-            }
-        }
-
-        BottomNavItem(Icons.Outlined.CreditCard, "Expenses", true) {
-            navController.navigate("expense_list/$userId") {
-                launchSingleTop = true
-            }
-        }
-
-        BottomNavItem(Icons.Outlined.Folder, "Categories", false) {
-            navController.navigate("categories/$userId") {
-                launchSingleTop = true
-            }
-        }
-
-        BottomNavItem(Icons.Default.Settings, "Settings", false) {
-            navController.navigate("settings/$userId") {
-                launchSingleTop = true
-            }
-        }
-    }
-}
-
-@Composable
-private fun BottomNavItem(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val activeColor = Color(0xFF65D6D0)
-    val inactiveColor = Color.White.copy(alpha = 0.65f)
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (selected) activeColor else inactiveColor,
-            modifier = Modifier.size(27.dp)
-        )
-
-        Text(
-            text = label,
-            color = if (selected) activeColor else inactiveColor,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-        )
     }
 }
 
