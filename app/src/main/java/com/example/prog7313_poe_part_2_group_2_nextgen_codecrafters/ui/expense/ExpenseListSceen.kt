@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import java.text.SimpleDateFormat
 import java.util.*
@@ -109,8 +111,9 @@ fun ExpenseListScreen(
                                 title = expense.description.ifBlank { "Expense" },
                                 amount = "R ${String.format("%.2f", expense.amount)}",
                                 date = formattedDate,
-                                icon = getExpenseIcon(expense.categoryId),
-                                iconBg = getExpenseIconColor(expense.categoryId)
+                                icon = getExpenseIconFromText(expense.description),
+                                iconBg = getExpenseIconColorFromText(expense.description),
+                                photoPath = expense.photoPath
                             )
                         }
                     }
@@ -279,59 +282,93 @@ private fun ExpenseCard(
     amount: String,
     date: String,
     icon: ImageVector,
-    iconBg: Color
+    iconBg: Color,
+    photoPath: String?
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(84.dp)
+            .height(100.dp)
             .background(Color(0xCC101B2D), RoundedCornerShape(16.dp))
             .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // I show the category icon first on the left side.
         Box(
             modifier = Modifier
-                .size(50.dp)
-                .background(iconBg, RoundedCornerShape(12.dp)),
+                .size(54.dp)
+                .background(iconBg, RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(30.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
+        // I show the description next to the icon.
         Text(
             text = title,
             color = Color.White,
-            fontSize = 21.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            maxLines = 2
         )
 
-        Column(horizontalAlignment = Alignment.End) {
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // I keep the optional receipt photo separate, before the amount and date.
+        if (!photoPath.isNullOrBlank()) {
+            AsyncImage(
+                model = photoPath,
+                contentDescription = "Receipt photo",
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(10.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(10.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // I display the amount on the right, with the date underneath it.
+        Column(
+            modifier = Modifier.width(92.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
                 text = amount,
                 color = Color.White,
-                fontSize = 21.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.End
+                textAlign = TextAlign.End,
+                maxLines = 1
             )
 
             Text(
                 text = date,
-                color = Color.White.copy(alpha = 0.70f),
-                fontSize = 15.sp
+                color = Color.White,
+                fontSize = 12.sp,
+                textAlign = TextAlign.End,
+                maxLines = 1
             )
         }
     }
 }
-
 @Composable
 private fun EmptyExpenseCard() {
     Box(
@@ -352,22 +389,109 @@ private fun EmptyExpenseCard() {
     }
 }
 
-private fun getExpenseIcon(categoryId: Int): ImageVector {
-    return when (categoryId) {
-        1 -> Icons.Default.ShoppingCart
-        2 -> Icons.Default.DirectionsCar
-        3 -> Icons.Default.Movie
-        4 -> Icons.Default.Receipt
+private fun getExpenseIconFromText(description: String): ImageVector {
+    val text = description.lowercase(Locale.getDefault())
+
+    return when {
+        // I use a car icon for transport-related expenses.
+        text.contains("uber") ||
+                text.contains("bolt") ||
+                text.contains("taxi") ||
+                text.contains("transport") -> Icons.Default.DirectionsCar
+
+        // I use a food icon for restaurants and takeaway expenses.
+        text.contains("kfc") ||
+                text.contains("mcdonald") ||
+                text.contains("steers") ||
+                text.contains("burger") ||
+                text.contains("king") ||
+                text.contains("nandos") ||
+                text.contains("pizza") ||
+                text.contains("pasta") ||
+                text.contains("food") -> Icons.Default.Fastfood
+
+        // I use a TV icon for entertainment subscriptions.
+        text.contains("netflix") ||
+                text.contains("prime") ||
+                text.contains("video") ||
+                text.contains("dstv") ||
+                text.contains("entertainment") -> Icons.Default.Tv
+
+        // I use a trolley icon for grocery stores.
+        text.contains("pick n pay") ||
+                text.contains("picknpay") ||
+                text.contains("take n pay") ||
+                text.contains("spar") ||
+                text.contains("checkers") ||
+                text.contains("grocery") ||
+                text.contains("groceries") -> Icons.Default.ShoppingCart
+
+        // I use a clothing icon for clothing-related purchases.
+        text.contains("clothing") ||
+                text.contains("clothes") ||
+                text.contains("edgars") ||
+                text.contains("shirt") -> Icons.Default.Checkroom
+
+        // I use a fuel icon for petrol, diesel, and fuel expenses.
+        text.contains("petrol") ||
+                text.contains("diesel") ||
+                text.contains("fuel") ||
+                text.contains("shell") ||
+                text.contains("bp") ||
+                text.contains("engen") ||
+                text.contains("total") -> Icons.Default.LocalGasStation
+
+        // I use a general card icon when the expense does not match a known type.
         else -> Icons.Default.CreditCard
     }
 }
 
-private fun getExpenseIconColor(categoryId: Int): Color {
-    return when (categoryId) {
-        1 -> Color(0xFF1F4B5A)
-        2 -> Color(0xFF185EA8)
-        3 -> Color(0xFF5A3654)
-        4 -> Color(0xFF26483B)
+private fun getExpenseIconColorFromText(description: String): Color {
+    val text = description.lowercase(Locale.getDefault())
+
+    return when {
+        text.contains("uber") ||
+                text.contains("bolt") ||
+                text.contains("taxi") ||
+                text.contains("transport") -> Color(0xFF185EA8)
+
+        text.contains("kfc") ||
+                text.contains("mcdonald") ||
+                text.contains("steers") ||
+                text.contains("burger") ||
+                text.contains("king") ||
+                text.contains("nandos") ||
+                text.contains("pizza") ||
+                text.contains("pasta") ||
+                text.contains("food") -> Color(0xFFD83A3A)
+
+        text.contains("netflix") ||
+                text.contains("prime") ||
+                text.contains("video") ||
+                text.contains("dstv") ||
+                text.contains("entertainment") -> Color(0xFF6932B8)
+
+        text.contains("pick n pay") ||
+                text.contains("picknpay") ||
+                text.contains("take n pay") ||
+                text.contains("spar") ||
+                text.contains("checkers") ||
+                text.contains("grocery") ||
+                text.contains("groceries") -> Color(0xFF1F8A4C)
+
+        text.contains("clothing") ||
+                text.contains("clothes") ||
+                text.contains("edgars") ||
+                text.contains("shirt") -> Color(0xFFE0A800)
+
+        text.contains("petrol") ||
+                text.contains("diesel") ||
+                text.contains("fuel") ||
+                text.contains("shell") ||
+                text.contains("bp") ||
+                text.contains("engen") ||
+                text.contains("total") -> Color(0xFFE87500)
+
         else -> Color(0xFF2E3A46)
     }
 }
