@@ -1,9 +1,11 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expenses
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -20,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Expense
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -28,6 +31,8 @@ import java.util.*
 fun ExpenseListScreen(userId: Int = 1) {
     val context = LocalContext.current
     val dao = remember { AppDatabase.getDatabase(context).expenseDao() }
+    val scope = rememberCoroutineScope()
+    val filterScrollState = rememberScrollState()
 
     var selectedFilter by remember { mutableStateOf("This Month") }
     val showDatePickerState = remember { mutableStateOf(false) }
@@ -87,13 +92,28 @@ fun ExpenseListScreen(userId: Int = 1) {
                         Icon(Icons.Default.DateRange, contentDescription = null, tint = Color(0xFF4DB6AC))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Filter by Date", color = Color.White, modifier = Modifier.weight(1f))
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    filterScrollState.animateScrollTo(filterScrollState.maxValue)
+                                }
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = "Scroll Right",
+                                tint = Color.Gray
+                            )
+                        }
                     }
                     
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(filterScrollState),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf("Today", "This Week", "This Month", "Custom").forEach { filter ->
