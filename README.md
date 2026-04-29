@@ -6,7 +6,7 @@
 
 ## 👩‍💻 Project Overview
 
-FinTrack is a mobile budgeting application developed as part of the **PROG7313 – Programming 3** Portfolio of Evidence (Part 2).
+FinTrack is a mobile budgeting application developed as part of the **PROG7313 – Programming 3C** Portfolio of Evidence (Part 2).
 The application enables users to track their daily expenses, manage categories, and monitor spending habits efficiently.
 
 🔗 **GitHub Repository:**
