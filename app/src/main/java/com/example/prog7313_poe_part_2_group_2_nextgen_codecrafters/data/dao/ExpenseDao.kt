@@ -9,20 +9,22 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.model.Catego
 @Dao
 interface ExpenseDao {
 
-
+    // Insert a new expense
     @Insert
     suspend fun insertExpense(expense: Expense)
 
+    // Get all expenses for a specific user
     @Query("SELECT * FROM expenses WHERE userId = :userId")
     suspend fun getExpensesForUser(userId: Int): List<Expense>
 
-    //  added feature: Category Totals Report
+    // Category Totals Report
     @Query("""
-        SELECT categoryId, SUM(amount) as totalAmount
-        FROM expenses
-        WHERE userId = :userId
-        AND date BETWEEN :startDate AND :endDate
-        GROUP BY categoryId
+        SELECT c.name as categoryName, SUM(e.amount) as totalAmount
+        FROM expenses e
+        INNER JOIN categories c ON e.categoryId = c.id
+        WHERE e.userId = :userId
+        AND e.date BETWEEN :startDate AND :endDate
+        GROUP BY c.name
     """)
     suspend fun getTotalSpentByCategory(
         userId: Int,
