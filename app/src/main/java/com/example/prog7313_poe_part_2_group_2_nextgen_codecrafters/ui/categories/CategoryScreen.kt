@@ -181,6 +181,7 @@ fun CategoryScreen(
             )
 
             SharedSideMenu(
+                modifier = Modifier.align(Alignment.TopEnd),
                 userName = userName,
                 onBudgetGoalsClick = {
                     showMenu = false

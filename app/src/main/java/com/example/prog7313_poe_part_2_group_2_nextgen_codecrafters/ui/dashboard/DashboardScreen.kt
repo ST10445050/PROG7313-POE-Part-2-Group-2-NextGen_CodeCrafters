@@ -326,7 +326,9 @@ fun DashboardScreen(
                         }
 
                         QuickAction("✪", "Budget\nGoals", Modifier.weight(1f)) {
-                            // This can be linked to a budget goals screen later.
+                            navController.navigate("budget_goals/$userId") {
+                                launchSingleTop = true
+                            }
                         }
                     }
                 }
@@ -399,6 +401,7 @@ fun DashboardScreen(
             )
 
             SharedSideMenu(
+                modifier = Modifier.align(Alignment.TopEnd),
                 userName = userName,
                 onBudgetGoalsClick = {
                     showMenu = false

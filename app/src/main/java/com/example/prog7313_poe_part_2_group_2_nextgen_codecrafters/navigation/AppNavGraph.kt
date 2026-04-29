@@ -112,7 +112,9 @@ fun AppNavGraph() {
 
             BudgetGoalScreen(
                 userId = userId,
-                budgetGoalDao = db.budgetGoalDao()
+                budgetGoalDao = db.budgetGoalDao(),
+                expenseDao = db.expenseDao(),
+                navController = navController
             )
         }
 

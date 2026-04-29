@@ -173,7 +173,7 @@ fun SharedSideMenu(
                 )
 
                 Text(
-                    text = "$userName",
+                    text = "$userName 👋",
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
