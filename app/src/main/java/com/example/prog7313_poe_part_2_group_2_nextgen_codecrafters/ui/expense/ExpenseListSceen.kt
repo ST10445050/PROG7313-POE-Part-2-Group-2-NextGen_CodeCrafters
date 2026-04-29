@@ -4,9 +4,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,35 +33,57 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import androidx.compose.ui.platform.LocalContext
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseListScreen(
     userId: Int,
     viewModel: ExpenseViewModel,
     navController: NavController
 ) {
+    // Loads all expenses for the logged-in user.
     val expenseList by viewModel.getExpensesForUser(userId)
         .collectAsState(initial = emptyList())
 
-    // I use this state to control whether the hamburger menu is open or closed.
+    // Tracks the selected filter chip.
+    var selectedFilter by remember { mutableStateOf("All") }
+
+    // Stores the start and end dates used for filtering.
+    var startDate by remember { mutableStateOf("2020-01-01") }
+    var endDate by remember { mutableStateOf("2030-12-31") }
+
+    // Controls whether the custom date picker dialog is open.
+    var showCustomDatePicker by remember { mutableStateOf(false) }
+
+    // Loads expenses inside the selected date range.
+    val filteredExpenseList by viewModel.getExpensesForUserByDateRange(
+        userId = userId,
+        startDate = startDate,
+        endDate = endDate
+    ).collectAsState(initial = emptyList())
+
+    // If All is selected, show everything. Otherwise show the filtered list.
+    val displayList = if (selectedFilter == "All") expenseList else filteredExpenseList
+
+    // Controls the hamburger menu.
     var showMenu by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
 
-// I store the logged-in user's name for the hamburger menu.
+    // Stores the user's name for the side menu.
     var userName by remember { mutableStateOf("User") }
 
-// I load the real user name from RoomDB using the current userId.
+    // Loads the logged-in user's real name from RoomDB.
     LaunchedEffect(userId) {
         userName = db.userDao().getUserById(userId)?.name ?: "User"
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // Background image.
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -78,7 +103,6 @@ fun ExpenseListScreen(
                     }
                 },
                 onMenuClick = {
-                    // I open the side menu when the user taps the hamburger icon.
                     showMenu = true
                 }
             )
@@ -100,29 +124,61 @@ fun ExpenseListScreen(
                     text = "Track and manage your spending.",
                     color = Color(0xFF65D6D0),
                     fontSize = 17.sp,
-                    modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
+                    modifier = Modifier.padding(top = 6.dp, bottom = 14.dp)
+                )
+
+                // Date filter section at the top of the Expense page.
+                ExpenseFilterSection(
+                    selectedFilter = selectedFilter,
+                    startDate = startDate,
+                    endDate = endDate,
+                    onFilterSelected = { filter ->
+                        when (filter) {
+                            "Today" -> {
+                                selectedFilter = filter
+                                startDate = getTodayDate()
+                                endDate = getTodayDate()
+                            }
+
+                            "This Week" -> {
+                                selectedFilter = filter
+                                startDate = getWeekStartDate()
+                                endDate = getTodayDate()
+                            }
+
+                            "This Month" -> {
+                                selectedFilter = filter
+                                startDate = getMonthStartDate()
+                                endDate = getTodayDate()
+                            }
+
+                            "Custom" -> {
+                                showCustomDatePicker = true
+                            }
+
+                            else -> {
+                                selectedFilter = "All"
+                                startDate = "2020-01-01"
+                                endDate = "2030-12-31"
+                            }
+                        }
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (expenseList.isEmpty()) {
-                    EmptyExpenseCard()
+                // Expense list area.
+                if (displayList.isEmpty()) {
+                    EmptyExpenseCard(selectedFilter)
                 } else {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(bottom = 18.dp)
                     ) {
-                        items(expenseList) { expense ->
+                        items(displayList) { expense ->
                             val formattedDate = remember(expense.date) {
-                                try {
-                                    val inputFormat = SimpleDateFormat("d/M/yyyy", Locale.getDefault())
-                                    val outputFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-                                    val parsedDate = inputFormat.parse(expense.date)
-                                    parsedDate?.let { outputFormat.format(it) } ?: expense.date
-                                } catch (e: Exception) {
-                                    expense.date
-                                }
+                                formatExpenseDateForDisplay(expense.date)
                             }
 
                             ExpenseCard(
@@ -137,6 +193,7 @@ fun ExpenseListScreen(
                     }
                 }
 
+                // Add Expense button.
                 Button(
                     onClick = { navController.navigate("add_expense/$userId") },
                     modifier = Modifier
@@ -150,7 +207,6 @@ fun ExpenseListScreen(
                 ) {
                     Row(
                         modifier = Modifier
-                            // I use the same bright ombré style as the rest of the app buttons.
                             .background(
                                 Brush.horizontalGradient(
                                     listOf(Color(0xFFA6F22E), Color(0xFF38D6A5))
@@ -186,29 +242,21 @@ fun ExpenseListScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // I show the menu overlay only when the hamburger menu is open.
+        // Side menu overlay.
         if (showMenu) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.45f))
-                    .clickable {
-                        // I close the menu when the user taps outside it.
-                        showMenu = false
-                    }
+                    .clickable { showMenu = false }
             )
 
             SharedSideMenu(
                 modifier = Modifier.align(Alignment.TopEnd),
                 userName = userName,
-                onBudgetGoalsClick = {
-                    // I close this for now because Budget Goals will be connected later.
-                    showMenu = false
-                },
+                onBudgetGoalsClick = { showMenu = false },
                 onLogoutClick = {
                     showMenu = false
-
-                    // I send the user back to the landing page and clear the back stack.
                     navController.navigate("landing") {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
@@ -216,9 +264,203 @@ fun ExpenseListScreen(
                 }
             )
         }
+
+        // Custom start date and end date picker.
+        if (showCustomDatePicker) {
+            CustomDateRangeDialog(
+                startDate = startDate,
+                endDate = endDate,
+                onDismiss = {
+                    showCustomDatePicker = false
+                },
+                onSearch = { selectedStartDate, selectedEndDate ->
+                    startDate = selectedStartDate
+                    endDate = selectedEndDate
+                    selectedFilter = "Custom"
+                    showCustomDatePicker = false
+                }
+            )
+        }
     }
 }
 
+@Composable
+private fun ExpenseFilterSection(
+    selectedFilter: String,
+    startDate: String,
+    endDate: String,
+    onFilterSelected: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xCC101B2D), RoundedCornerShape(16.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.DateRange,
+                contentDescription = null,
+                tint = Color(0xFF65D6D0),
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = "Filter by Date",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = if (selectedFilter == "All") {
+                "Showing all expenses"
+            } else {
+                "Showing $startDate to $endDate"
+            },
+            color = Color.White.copy(alpha = 0.70f),
+            fontSize = 12.sp
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("All", "Today", "This Week", "This Month", "Custom").forEach { filter ->
+                FilterChip(
+                    selected = selectedFilter == filter,
+                    onClick = { onFilterSelected(filter) },
+                    label = {
+                        Text(
+                            text = filter,
+                            fontWeight = if (selectedFilter == filter) FontWeight.Bold else FontWeight.Medium
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = Color.Transparent,
+                        labelColor = Color.White.copy(alpha = 0.75f),
+                        selectedContainerColor = Color(0xFF65D6D0).copy(alpha = 0.20f),
+                        selectedLabelColor = Color(0xFF65D6D0)
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = selectedFilter == filter,
+                        borderColor = Color.White.copy(alpha = 0.18f),
+                        selectedBorderColor = Color(0xFF65D6D0)
+                    )
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomDateRangeDialog(
+    startDate: String,
+    endDate: String,
+    onDismiss: () -> Unit,
+    onSearch: (String, String) -> Unit
+) {
+    // DateRangePicker needs dates as milliseconds.
+    val dateRangePickerState = rememberDateRangePickerState(
+        initialSelectedStartDateMillis = parseDateToMillis(startDate),
+        initialSelectedEndDateMillis = parseDateToMillis(endDate),
+
+        // Opens the picker as a proper calendar instead of text input.
+        // This lets the user move between months using the calendar arrows.
+        initialDisplayMode = DisplayMode.Picker
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val selectedStart = dateRangePickerState.selectedStartDateMillis
+                    val selectedEnd = dateRangePickerState.selectedEndDateMillis
+
+                    if (selectedStart != null && selectedEnd != null) {
+                        onSearch(
+                            formatDateForDatabase(selectedStart),
+                            formatDateForDatabase(selectedEnd)
+                        )
+                    }
+                },
+                enabled = dateRangePickerState.selectedStartDateMillis != null &&
+                        dateRangePickerState.selectedEndDateMillis != null
+            ) {
+                Text("Search", color = Color(0xFF65D6D0))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.White)
+            }
+        },
+        colors = DatePickerDefaults.colors(
+            containerColor = Color(0xFF101B2D)
+        )
+    ) {
+        DateRangePicker(
+            state = dateRangePickerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(560.dp)
+                .padding(12.dp),
+            title = {
+                Text(
+                    text = "Select Date Range",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(16.dp)
+                )
+            },
+            headline = {
+                val start = dateRangePickerState.selectedStartDateMillis
+                    ?.let { formatDateForDatabase(it) } ?: "Start Date"
+
+                val end = dateRangePickerState.selectedEndDateMillis
+                    ?.let { formatDateForDatabase(it) } ?: "End Date"
+
+                Text(
+                    text = "$start - $end",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            },
+
+
+            showModeToggle = true,
+
+            colors = DatePickerDefaults.colors(
+                containerColor = Color(0xFF101B2D),
+                titleContentColor = Color.White,
+                headlineContentColor = Color.White,
+                navigationContentColor = Color.White,
+                dayContentColor = Color.White,
+                selectedDayContentColor = Color.Black,
+                selectedDayContainerColor = Color(0xFF65D6D0),
+                todayContentColor = Color(0xFF65D6D0),
+                todayDateBorderColor = Color(0xFF65D6D0),
+                yearContentColor = Color.White,
+                selectedYearContentColor = Color.Black,
+                selectedYearContainerColor = Color(0xFF65D6D0)
+            )
+        )
+    }
+}
 @Composable
 private fun ExpenseTopBar(
     onBackClick: () -> Unit,
@@ -268,7 +510,6 @@ private fun SharedSideMenu(
 ) {
     Column(
         modifier = modifier
-            // I start the menu below the top bar and stop it above the bottom nav.
             .padding(top = 72.dp, bottom = 78.dp)
             .width(278.dp)
             .fillMaxHeight()
@@ -395,7 +636,6 @@ private fun ExpenseCard(
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // I show the category icon first on the left side.
         Box(
             modifier = Modifier
                 .size(54.dp)
@@ -412,7 +652,6 @@ private fun ExpenseCard(
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        // I show the description next to the icon.
         Text(
             text = title,
             color = Color.White,
@@ -424,7 +663,6 @@ private fun ExpenseCard(
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        // I keep the optional receipt photo separate from the icon.
         if (!photoPath.isNullOrBlank()) {
             AsyncImage(
                 model = photoPath,
@@ -445,7 +683,6 @@ private fun ExpenseCard(
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        // I display the amount on the right, with the date underneath it.
         Column(
             modifier = Modifier.width(92.dp),
             horizontalAlignment = Alignment.End,
@@ -472,7 +709,7 @@ private fun ExpenseCard(
 }
 
 @Composable
-private fun EmptyExpenseCard() {
+private fun EmptyExpenseCard(selectedFilter: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -483,7 +720,11 @@ private fun EmptyExpenseCard() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "No expenses yet. Add your first expense to start tracking.",
+            text = if (selectedFilter == "All") {
+                "No expenses yet. Add your first expense to start tracking."
+            } else {
+                "No expenses found for this selected period."
+            },
             color = Color.White.copy(alpha = 0.75f),
             fontSize = 16.sp,
             textAlign = TextAlign.Center
@@ -659,5 +900,68 @@ private fun BottomNavItem(
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
         )
+    }
+}
+
+private fun formatExpenseDateForDisplay(date: String): String {
+    return try {
+        val inputFormats = listOf(
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+            SimpleDateFormat("d/M/yyyy", Locale.getDefault()),
+            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        )
+
+        val outputFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
+        for (format in inputFormats) {
+            try {
+                val parsedDate = format.parse(date)
+                if (parsedDate != null) {
+                    return outputFormat.format(parsedDate)
+                }
+            } catch (_: Exception) {
+            }
+        }
+
+        date
+    } catch (_: Exception) {
+        date
+    }
+}
+
+private fun getTodayDate(): String {
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return formatter.format(Date())
+}
+
+private fun getWeekStartDate(): String {
+    val calendar = Calendar.getInstance()
+    calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return formatter.format(calendar.time)
+}
+
+private fun getMonthStartDate(): String {
+    val calendar = Calendar.getInstance()
+    calendar.set(Calendar.DAY_OF_MONTH, 1)
+
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return formatter.format(calendar.time)
+}
+
+private fun formatDateForDatabase(millis: Long): String {
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    formatter.timeZone = TimeZone.getTimeZone("UTC")
+    return formatter.format(Date(millis))
+}
+
+private fun parseDateToMillis(date: String): Long? {
+    return try {
+        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        formatter.timeZone = TimeZone.getTimeZone("UTC")
+        formatter.parse(date)?.time
+    } catch (_: Exception) {
+        null
     }
 }
