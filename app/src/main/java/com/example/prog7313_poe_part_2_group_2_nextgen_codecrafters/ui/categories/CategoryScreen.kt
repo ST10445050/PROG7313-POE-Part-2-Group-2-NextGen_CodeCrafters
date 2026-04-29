@@ -11,18 +11,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -35,6 +36,19 @@ fun CategoryScreen(
     viewModel: CategoryViewModel = viewModel()
 ) {
     val categories by viewModel.categories.collectAsState()
+    val context = LocalContext.current
+    val db = AppDatabase.getDatabase(context)
+
+// I store the logged-in user's name for the hamburger menu greeting.
+    var userName by remember { mutableStateOf("User") }
+
+// I load the real user name from RoomDB using the current userId.
+    LaunchedEffect(userId) {
+        userName = db.userDao().getUserById(userId)?.name ?: "User"
+    }
+
+    // I use this state to open and close the hamburger menu.
+    var showMenu by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -59,6 +73,10 @@ fun CategoryScreen(
                     navController.navigate("dashboard/$userId") {
                         launchSingleTop = true
                     }
+                },
+                onMenuClick = {
+                    // I open the side menu when the user taps the hamburger icon.
+                    showMenu = true
                 }
             )
 
@@ -100,11 +118,45 @@ fun CategoryScreen(
             userId = userId,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // I display the same hamburger menu overlay used across the app.
+        if (showMenu) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable {
+                        // I close the menu when the user taps outside the menu panel.
+                        showMenu = false
+                    }
+            )
+
+            SharedSideMenu(
+                modifier = Modifier.align(Alignment.TopEnd),
+                userName = userName,
+                onBudgetGoalsClick = {
+                    // I close the menu for now because Budget Goals will be added later.
+                    showMenu = false
+                },
+                onLogoutClick = {
+                    showMenu = false
+
+                    // I return the user to the landing page and clear the back stack.
+                    navController.navigate("landing") {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-private fun TopBar(onBackClick: () -> Unit) {
+private fun TopBar(
+    onBackClick: () -> Unit,
+    onMenuClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -131,9 +183,131 @@ private fun TopBar(onBackClick: () -> Unit) {
 
         Icon(
             imageVector = Icons.Default.Menu,
-            contentDescription = "Menu",
+            contentDescription = "Open menu",
             tint = Color.White,
-            modifier = Modifier.size(34.dp)
+            modifier = Modifier
+                .size(34.dp)
+                .clickable { onMenuClick() }
+        )
+    }
+}
+
+@Composable
+private fun SharedSideMenu(
+    modifier: Modifier = Modifier,
+    userName: String,
+    onBudgetGoalsClick: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            // I start the menu below the top bar so it lines up neatly with the navbar.
+            .padding(top = 72.dp, bottom = 78.dp)
+            .width(278.dp)
+            .fillMaxHeight()
+            .background(Color(0xF0111C2D))
+            .border(1.dp, Color.White.copy(alpha = 0.10f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xDD071827))
+                .padding(horizontal = 24.dp, vertical = 22.dp)
+        ) {
+            Row {
+
+                Text(
+                    text = "Hello ",
+                    color = Color(0xFF65D6D0),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // I display the actual logged-in user's name in white.
+                Text(
+                    text = "$userName 👋",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Let’s manage your finances today.",
+                color = Color.White.copy(alpha = 0.82f),
+                fontSize = 16.sp
+            )
+        }
+
+        Text(
+            text = "MENU",
+            color = Color.White.copy(alpha = 0.58f),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
+        SharedMenuItem(
+            icon = Icons.Default.TrackChanges,
+            title = "Budget Goals",
+            iconColor = Color(0xFF65D6D0),
+            onClick = onBudgetGoalsClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
+        SharedMenuItem(
+            icon = Icons.Default.PowerSettingsNew,
+            title = "Logout",
+            iconColor = Color(0xFFE04F5F),
+            onClick = onLogoutClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+    }
+}
+
+@Composable
+private fun SharedMenuItem(
+    icon: ImageVector,
+    title: String,
+    iconColor: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .clickable { onClick() }
+            .padding(horizontal = 28.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = iconColor,
+            modifier = Modifier.size(32.dp)
+        )
+
+        Spacer(modifier = Modifier.width(18.dp))
+
+        Text(
+            text = title,
+            color = Color.White,
+            fontSize = 21.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.55f),
+            modifier = Modifier.size(30.dp)
         )
     }
 }
@@ -289,7 +463,7 @@ private fun AddCategoryBox(viewModel: CategoryViewModel) {
                     modifier = Modifier
                         .background(
                             Brush.horizontalGradient(
-                                listOf(Color(0xFFB6F529), Color(0xFF39D58A))
+                                listOf(Color(0xFFA6F22E), Color(0xFF38D6A5))
                             ),
                             RoundedCornerShape(9.dp)
                         )
@@ -330,7 +504,6 @@ private fun BottomNavBar(
         BottomNavItem(Icons.Default.List, "Expenses", selected = false) {
             navController.navigate("expense_list/$userId") {
                 launchSingleTop = true
-
             }
         }
 
@@ -350,7 +523,7 @@ private fun BottomNavBar(
 
 @Composable
 private fun BottomNavItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     selected: Boolean,
     onClick: () -> Unit

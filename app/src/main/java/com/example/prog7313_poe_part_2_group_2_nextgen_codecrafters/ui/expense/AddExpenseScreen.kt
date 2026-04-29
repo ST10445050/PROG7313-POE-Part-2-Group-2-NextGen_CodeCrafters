@@ -34,10 +34,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.platform.LocalContext
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Expense
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.categories.CategoryViewModel
-import java.util.*
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,29 +53,42 @@ fun AddExpenseScreen(
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
 
-    // Selected category is now based on the user's saved RoomDB categories.
+    // I store the selected category from the user's saved RoomDB categories.
     var selectedCategoryName by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf(0) }
 
+    // I keep the receipt image optional.
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+
     var date by remember { mutableStateOf("") }
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
 
+    // I use this state to open and close the hamburger menu.
+    var showMenu by remember { mutableStateOf(false) }
+
     val context = LocalContext.current
+    val db = AppDatabase.getDatabase(context)
+
+// I store the logged-in user's name for the hamburger menu.
+    var userName by remember { mutableStateOf("User") }
+
+// I load the real user name from RoomDB using the current userId.
+    LaunchedEffect(userId) {
+        userName = db.userDao().getUserById(userId)?.name ?: "User"
+    }
     val calendar = Calendar.getInstance()
+
     var showDateDialog by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
 
-    // Loads categories created by the user from CategoryViewModel instead of hardcoded items.
     val categories by categoryViewModel.categories.collectAsState()
-
     var expanded by remember { mutableStateOf(false) }
 
-    // Opens phone gallery/file picker for optional receipt photo.
+    // I open the gallery so the user can optionally upload a receipt image.
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
+    ) { uri ->
         imageUri = uri
     }
 
@@ -90,11 +105,17 @@ fun AddExpenseScreen(
                 .fillMaxSize()
                 .padding(bottom = 78.dp)
         ) {
-            AddExpenseTopBar {
-                navController.navigate("expense_list/$userId") {
-                    launchSingleTop = true
+            AddExpenseTopBar(
+                onBackClick = {
+                    navController.navigate("expense_list/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onMenuClick = {
+                    // I open the hamburger menu when the user taps the three lines.
+                    showMenu = true
                 }
-            }
+            )
 
             Column(
                 modifier = Modifier
@@ -296,7 +317,7 @@ fun AddExpenseScreen(
                     onClick = {
                         val parsedAmount = amount.toDoubleOrNull()
 
-                        // Save only when a valid amount and category are selected.
+                        // I only save the expense when the amount and category are valid.
                         if (parsedAmount != null && selectedCategoryId != 0) {
                             viewModel.addExpense(
                                 Expense(
@@ -310,14 +331,15 @@ fun AddExpenseScreen(
                                     photoPath = imageUri?.toString()
                                 )
                             )
+
                             onSaveSuccess()
                         }
                     },
-                    enabled = amount.toDoubleOrNull() != null && selectedCategoryId != 0,
+                    enabled = true,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .height(58.dp)
-                        .shadow(14.dp, RoundedCornerShape(28.dp)),
+                        .height(56.dp)
+                        .shadow(10.dp, RoundedCornerShape(28.dp)),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent,
                         disabledContainerColor = Color.Transparent
@@ -327,25 +349,31 @@ fun AddExpenseScreen(
                 ) {
                     Row(
                         modifier = Modifier
+                            // I keep the Add Expense button in the bright ombré colour.
                             .background(
                                 Brush.horizontalGradient(
-                                    if (amount.toDoubleOrNull() != null && selectedCategoryId != 0) {
-                                        listOf(Color(0xFFB6F529), Color(0xFF39D58A))
-                                    } else {
-                                        listOf(Color.Gray.copy(alpha = 0.55f), Color.DarkGray.copy(alpha = 0.55f))
-                                    }
+                                    listOf(
+                                        Color(0xFFA6F22E),
+                                        Color(0xFF38D6A5)
+                                    )
                                 ),
                                 RoundedCornerShape(28.dp)
                             )
-                            .padding(horizontal = 32.dp, vertical = 13.dp),
+                            .padding(horizontal = 28.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+
                         Spacer(modifier = Modifier.width(8.dp))
+
                         Text(
-                            text = "ADD EXPENSE",
+                            text = "Add Expense",
                             color = Color.White,
-                            fontSize = 18.sp,
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -358,19 +386,52 @@ fun AddExpenseScreen(
             userId = userId,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // I show the hamburger menu overlay on top of this screen.
+        if (showMenu) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable {
+                        showMenu = false
+                    }
+            )
+
+            SharedSideMenu(
+                modifier = Modifier.align(Alignment.TopEnd),
+                userName = userName,
+                onBudgetGoalsClick = {
+                    // I close this for now because Budget Goals will be linked later.
+                    showMenu = false
+                },
+                onLogoutClick = {
+                    showMenu = false
+
+                    // I send the user back to the landing page and clear the back stack.
+                    navController.navigate("landing") {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
     }
 
     if (showDateDialog) {
         DatePickerDialog(
             onDismissRequest = { showDateDialog = false },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        val cal = Calendar.getInstance().apply { timeInMillis = it }
-                        date = "${cal.get(Calendar.DAY_OF_MONTH)}/${cal.get(Calendar.MONTH) + 1}/${cal.get(Calendar.YEAR)}"
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            val cal = Calendar.getInstance().apply { timeInMillis = it }
+                            date =
+                                "${cal.get(Calendar.DAY_OF_MONTH)}/${cal.get(Calendar.MONTH) + 1}/${cal.get(Calendar.YEAR)}"
+                        }
+                        showDateDialog = false
                     }
-                    showDateDialog = false
-                }) {
+                ) {
                     Text("OK")
                 }
             }
@@ -381,7 +442,10 @@ fun AddExpenseScreen(
 }
 
 @Composable
-private fun AddExpenseTopBar(onBackClick: () -> Unit) {
+private fun AddExpenseTopBar(
+    onBackClick: () -> Unit,
+    onMenuClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -406,7 +470,132 @@ private fun AddExpenseTopBar(onBackClick: () -> Unit) {
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White, modifier = Modifier.size(34.dp))
+        // I make the hamburger icon open the shared side menu.
+        Icon(
+            imageVector = Icons.Default.Menu,
+            contentDescription = "Open menu",
+            tint = Color.White,
+            modifier = Modifier
+                .size(34.dp)
+                .clickable { onMenuClick() }
+        )
+    }
+}
+
+@Composable
+private fun SharedSideMenu(
+    modifier: Modifier = Modifier,
+    userName: String,
+    onBudgetGoalsClick: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .padding(top = 72.dp, bottom = 78.dp)
+            .width(278.dp)
+            .fillMaxHeight()
+            .background(Color(0xF0111C2D))
+            .border(1.dp, Color.White.copy(alpha = 0.10f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xDD071827))
+                .padding(horizontal = 24.dp, vertical = 22.dp)
+        ) {
+            Row {
+
+                Text(
+                    text = "Hello ",
+                    color = Color(0xFF65D6D0),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+
+                Text(
+                    text = "$userName 👋",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Let’s manage your finances today.",
+                color = Color.White.copy(alpha = 0.82f),
+                fontSize = 16.sp
+            )
+        }
+
+        Text(
+            text = "MENU",
+            color = Color.White.copy(alpha = 0.58f),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
+        SharedMenuItem(
+            icon = Icons.Default.Flag,
+            title = "Budget Goals",
+            iconColor = Color(0xFF65D6D0),
+            onClick = onBudgetGoalsClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
+        SharedMenuItem(
+            icon = Icons.Default.Logout,
+            title = "Logout",
+            iconColor = Color(0xFFE04F5F),
+            onClick = onLogoutClick
+        )
+    }
+}
+
+@Composable
+private fun SharedMenuItem(
+    icon: ImageVector,
+    title: String,
+    iconColor: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .clickable { onClick() }
+            .padding(horizontal = 28.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = iconColor,
+            modifier = Modifier.size(32.dp)
+        )
+
+        Spacer(modifier = Modifier.width(18.dp))
+
+        Text(
+            text = title,
+            color = Color.White,
+            fontSize = 21.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.55f),
+            modifier = Modifier.size(30.dp)
+        )
     }
 }
 
@@ -443,7 +632,9 @@ private fun StyledTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = { Text(placeholder, color = Color.White.copy(alpha = 0.45f)) },
+        placeholder = {
+            Text(placeholder, color = Color.White.copy(alpha = 0.45f))
+        },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
@@ -463,13 +654,19 @@ private fun ReadOnlyField(
         value = value,
         onValueChange = {},
         readOnly = true,
-        placeholder = { Text(placeholder, color = Color.White.copy(alpha = 0.45f)) },
+        placeholder = {
+            Text(placeholder, color = Color.White.copy(alpha = 0.45f))
+        },
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
         trailingIcon = {
             IconButton(onClick = onClick) {
-                Icon(icon, contentDescription = null, tint = Color(0xFF65D6D0))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color(0xFF65D6D0)
+                )
             }
         },
         colors = fieldColors(),
@@ -504,19 +701,27 @@ private fun ExpenseBottomNav(
         verticalAlignment = Alignment.CenterVertically
     ) {
         BottomNavItem(Icons.Default.Home, "Dashboard", false) {
-            navController.navigate("dashboard/$userId") { launchSingleTop = true }
+            navController.navigate("dashboard/$userId") {
+                launchSingleTop = true
+            }
         }
 
         BottomNavItem(Icons.Outlined.CreditCard, "Expenses", true) {
-            navController.navigate("expense_list/$userId") { launchSingleTop = true }
+            navController.navigate("expense_list/$userId") {
+                launchSingleTop = true
+            }
         }
 
         BottomNavItem(Icons.Outlined.Folder, "Categories", false) {
-            navController.navigate("categories/$userId") { launchSingleTop = true }
+            navController.navigate("categories/$userId") {
+                launchSingleTop = true
+            }
         }
 
         BottomNavItem(Icons.Default.Settings, "Settings", false) {
-            navController.navigate("settings/$userId") { launchSingleTop = true }
+            navController.navigate("settings/$userId") {
+                launchSingleTop = true
+            }
         }
     }
 }

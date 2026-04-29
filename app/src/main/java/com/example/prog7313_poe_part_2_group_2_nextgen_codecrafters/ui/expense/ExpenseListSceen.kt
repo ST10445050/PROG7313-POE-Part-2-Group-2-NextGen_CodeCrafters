@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
+import androidx.compose.ui.platform.LocalContext
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,6 +43,20 @@ fun ExpenseListScreen(
 ) {
     val expenseList by viewModel.getExpensesForUser(userId)
         .collectAsState(initial = emptyList())
+
+    // I use this state to control whether the hamburger menu is open or closed.
+    var showMenu by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val db = AppDatabase.getDatabase(context)
+
+// I store the logged-in user's name for the hamburger menu.
+    var userName by remember { mutableStateOf("User") }
+
+// I load the real user name from RoomDB using the current userId.
+    LaunchedEffect(userId) {
+        userName = db.userDao().getUserById(userId)?.name ?: "User"
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -60,6 +76,10 @@ fun ExpenseListScreen(
                     navController.navigate("dashboard/$userId") {
                         launchSingleTop = true
                     }
+                },
+                onMenuClick = {
+                    // I open the side menu when the user taps the hamburger icon.
+                    showMenu = true
                 }
             )
 
@@ -82,8 +102,6 @@ fun ExpenseListScreen(
                     fontSize = 17.sp,
                     modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
                 )
-
-                FilterCard()
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -132,9 +150,10 @@ fun ExpenseListScreen(
                 ) {
                     Row(
                         modifier = Modifier
+                            // I use the same bright ombré style as the rest of the app buttons.
                             .background(
                                 Brush.horizontalGradient(
-                                    listOf(Color(0xFFB6F529), Color(0xFF39D58A))
+                                    listOf(Color(0xFFA6F22E), Color(0xFF38D6A5))
                                 ),
                                 RoundedCornerShape(28.dp)
                             )
@@ -166,11 +185,45 @@ fun ExpenseListScreen(
             userId = userId,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // I show the menu overlay only when the hamburger menu is open.
+        if (showMenu) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable {
+                        // I close the menu when the user taps outside it.
+                        showMenu = false
+                    }
+            )
+
+            SharedSideMenu(
+                modifier = Modifier.align(Alignment.TopEnd),
+                userName = userName,
+                onBudgetGoalsClick = {
+                    // I close this for now because Budget Goals will be connected later.
+                    showMenu = false
+                },
+                onLogoutClick = {
+                    showMenu = false
+
+                    // I send the user back to the landing page and clear the back stack.
+                    navController.navigate("landing") {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-private fun ExpenseTopBar(onBackClick: () -> Unit) {
+private fun ExpenseTopBar(
+    onBackClick: () -> Unit,
+    onMenuClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -197,81 +250,129 @@ private fun ExpenseTopBar(onBackClick: () -> Unit) {
 
         Icon(
             imageVector = Icons.Default.Menu,
-            contentDescription = "Menu",
+            contentDescription = "Open menu",
             tint = Color.White,
-            modifier = Modifier.size(34.dp)
+            modifier = Modifier
+                .size(34.dp)
+                .clickable { onMenuClick() }
         )
     }
 }
 
 @Composable
-private fun FilterCard() {
+private fun SharedSideMenu(
+    modifier: Modifier = Modifier,
+    userName: String,
+    onBudgetGoalsClick: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xCC101B2D), RoundedCornerShape(16.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
-            .padding(14.dp)
+        modifier = modifier
+            // I start the menu below the top bar and stop it above the bottom nav.
+            .padding(top = 72.dp, bottom = 78.dp)
+            .width(278.dp)
+            .fillMaxHeight()
+            .background(Color(0xF0111C2D))
+            .border(1.dp, Color.White.copy(alpha = 0.10f))
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.DateRange,
-                contentDescription = null,
-                tint = Color(0xFF65D6D0),
-                modifier = Modifier.size(26.dp)
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xDD071827))
+                .padding(horizontal = 24.dp, vertical = 22.dp)
+        ) {
+            Row {
+                Text(
+                    text = "Hello ",
+                    color = Color(0xFF65D6D0),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
-            Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "$userName 👋",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Filter by Date",
-                color = Color.White,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowRight,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
+                text = "Let’s manage your finances today.",
+                color = Color.White.copy(alpha = 0.82f),
+                fontSize = 16.sp
             )
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Text(
+            text = "MENU",
+            color = Color.White.copy(alpha = 0.58f),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+        )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChipText("Today", false, Modifier.weight(1f))
-            FilterChipText("This Week", false, Modifier.weight(1f))
-            FilterChipText("This Month", true, Modifier.weight(1f))
-        }
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
+        SharedMenuItem(
+            icon = Icons.Default.TrackChanges,
+            title = "Budget Goals",
+            iconColor = Color(0xFF65D6D0),
+            onClick = onBudgetGoalsClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
+        SharedMenuItem(
+            icon = Icons.Default.PowerSettingsNew,
+            title = "Logout",
+            iconColor = Color(0xFFE04F5F),
+            onClick = onLogoutClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
     }
 }
 
 @Composable
-private fun FilterChipText(text: String, selected: Boolean, modifier: Modifier) {
-    Box(
-        modifier = modifier
-            .height(42.dp)
-            .background(
-                if (selected) Color(0xFF39D58A).copy(alpha = 0.85f)
-                else Color(0xFF17263A).copy(alpha = 0.95f),
-                RoundedCornerShape(12.dp)
-            )
-            .border(
-                1.dp,
-                if (selected) Color(0xFF65D6D0) else Color.White.copy(alpha = 0.08f),
-                RoundedCornerShape(12.dp)
-            ),
-        contentAlignment = Alignment.Center
+private fun SharedMenuItem(
+    icon: ImageVector,
+    title: String,
+    iconColor: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .clickable { onClick() }
+            .padding(horizontal = 28.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = iconColor,
+            modifier = Modifier.size(32.dp)
+        )
+
+        Spacer(modifier = Modifier.width(18.dp))
+
         Text(
-            text = text,
+            text = title,
             color = Color.White,
-            fontSize = 13.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+            fontSize = 21.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.55f),
+            modifier = Modifier.size(30.dp)
         )
     }
 }
@@ -323,7 +424,7 @@ private fun ExpenseCard(
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        // I keep the optional receipt photo separate, before the amount and date.
+        // I keep the optional receipt photo separate from the icon.
         if (!photoPath.isNullOrBlank()) {
             AsyncImage(
                 model = photoPath,
@@ -369,6 +470,7 @@ private fun ExpenseCard(
         }
     }
 }
+
 @Composable
 private fun EmptyExpenseCard() {
     Box(
@@ -393,13 +495,11 @@ private fun getExpenseIconFromText(description: String): ImageVector {
     val text = description.lowercase(Locale.getDefault())
 
     return when {
-        // I use a car icon for transport-related expenses.
         text.contains("uber") ||
                 text.contains("bolt") ||
                 text.contains("taxi") ||
                 text.contains("transport") -> Icons.Default.DirectionsCar
 
-        // I use a food icon for restaurants and takeaway expenses.
         text.contains("kfc") ||
                 text.contains("mcdonald") ||
                 text.contains("steers") ||
@@ -410,14 +510,12 @@ private fun getExpenseIconFromText(description: String): ImageVector {
                 text.contains("pasta") ||
                 text.contains("food") -> Icons.Default.Fastfood
 
-        // I use a TV icon for entertainment subscriptions.
         text.contains("netflix") ||
                 text.contains("prime") ||
                 text.contains("video") ||
                 text.contains("dstv") ||
                 text.contains("entertainment") -> Icons.Default.Tv
 
-        // I use a trolley icon for grocery stores.
         text.contains("pick n pay") ||
                 text.contains("picknpay") ||
                 text.contains("take n pay") ||
@@ -426,13 +524,11 @@ private fun getExpenseIconFromText(description: String): ImageVector {
                 text.contains("grocery") ||
                 text.contains("groceries") -> Icons.Default.ShoppingCart
 
-        // I use a clothing icon for clothing-related purchases.
         text.contains("clothing") ||
                 text.contains("clothes") ||
                 text.contains("edgars") ||
                 text.contains("shirt") -> Icons.Default.Checkroom
 
-        // I use a fuel icon for petrol, diesel, and fuel expenses.
         text.contains("petrol") ||
                 text.contains("diesel") ||
                 text.contains("fuel") ||
@@ -441,7 +537,6 @@ private fun getExpenseIconFromText(description: String): ImageVector {
                 text.contains("engen") ||
                 text.contains("total") -> Icons.Default.LocalGasStation
 
-        // I use a general card icon when the expense does not match a known type.
         else -> Icons.Default.CreditCard
     }
 }

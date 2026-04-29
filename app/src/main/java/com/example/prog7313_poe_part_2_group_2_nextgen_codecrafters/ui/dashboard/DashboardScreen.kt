@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -42,6 +43,9 @@ fun DashboardScreen(
 
     var user by remember { mutableStateOf<User?>(null) }
     var answers by remember { mutableStateOf<QuestionnaireAnswers?>(null) }
+
+    // I use this state to control when the hamburger menu is shown or hidden.
+    var showMenu by remember { mutableStateOf(false) }
 
     val expenses by expenseViewModel
         .getExpensesForUser(userId)
@@ -114,9 +118,14 @@ fun DashboardScreen(
 
                 Icon(
                     imageVector = Icons.Default.Menu,
-                    contentDescription = null,
+                    contentDescription = "Open menu",
                     tint = Color.White,
-                    modifier = Modifier.size(34.dp)
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clickable {
+                            // I open the hamburger menu when the user taps the three lines.
+                            showMenu = true
+                        }
                 )
             }
 
@@ -163,7 +172,9 @@ fun DashboardScreen(
 
                 LinearProgressIndicator(
                     progress = { progressValue },
-                    modifier = Modifier.fillMaxWidth().height(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp),
                     color = FinTrackLime,
                     trackColor = FinTrackTeal.copy(alpha = 0.45f)
                 )
@@ -197,7 +208,6 @@ fun DashboardScreen(
                     Text("No spending categories selected yet.", color = Color.White.copy(alpha = 0.75f), fontSize = 16.sp)
                 } else {
                     categories.take(4).forEachIndexed { index, category ->
-
                         val categoryTotal = expenses
                             .filter { it.categoryId == index + 1 }
                             .sumOf { it.amount }
@@ -322,6 +332,155 @@ fun DashboardScreen(
             userId = userId,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // I show the dark overlay and side menu only when the hamburger menu is open.
+        if (showMenu) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable {
+                        // I allow the user to close the menu by tapping outside it.
+                        showMenu = false
+                    }
+            )
+
+            DashboardSideMenu(
+                modifier = Modifier.align(Alignment.TopEnd),
+                userName = userName,
+                onBudgetGoalsClick = {
+                    showMenu = false
+                },
+                onLogoutClick = {
+                    showMenu = false
+                    navController.navigate("landing") {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+                }
+
+        }
+    }
+
+@Composable
+private fun DashboardSideMenu(
+    modifier: Modifier = Modifier,
+    userName: String,
+    onBudgetGoalsClick: () -> Unit,
+    onLogoutClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            // I start the menu below the top bar so it lines up neatly like the reference.
+            .padding(top = 72.dp, bottom = 76.dp)
+            .width(278.dp)
+            .fillMaxHeight()
+            .background(Color(0xF0111C2D))
+            .border(1.dp, Color.White.copy(alpha = 0.10f))
+    ) {
+        // I added the user greeting at the top of the hamburger menu.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xDD071827))
+                .padding(horizontal = 24.dp, vertical = 22.dp)
+        ) {
+            Row {
+                Text(
+                    text = "Hello ",
+                    color = FinTrackMint,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "$userName 👋",
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Let’s manage your finances today.",
+                color = Color.White.copy(alpha = 0.82f),
+                fontSize = 16.sp,
+                lineHeight = 22.sp
+            )
+        }
+
+        Text(
+            text = "MENU",
+            color = Color.White.copy(alpha = 0.58f),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
+        DashboardMenuItem(
+            icon = Icons.Default.TrackChanges,
+            title = "Budget Goals",
+            iconColor = FinTrackMint,
+            onClick = onBudgetGoalsClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
+        DashboardMenuItem(
+            icon = Icons.Default.PowerSettingsNew,
+            title = "Logout",
+            iconColor = Color(0xFFE04F5F),
+            onClick = onLogoutClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+    }
+}
+@Composable
+private fun DashboardMenuItem(
+    icon: ImageVector,
+    title: String,
+    iconColor: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .clickable { onClick() }
+            .padding(horizontal = 28.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // I display the menu icon on the left, matching the hamburger menu reference.
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = iconColor,
+            modifier = Modifier.size(32.dp)
+        )
+
+        Spacer(modifier = Modifier.width(18.dp))
+
+        Text(
+            text = title,
+            color = Color.White,
+            fontSize = 21.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.55f),
+            modifier = Modifier.size(30.dp)
+        )
     }
 }
 
@@ -358,7 +517,10 @@ private fun SpendingRow(icon: ImageVector, title: String, amount: String, progre
 
         LinearProgressIndicator(
             progress = { progress },
-            modifier = Modifier.fillMaxWidth().padding(start = 38.dp).height(7.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 38.dp)
+                .height(7.dp),
             color = color,
             trackColor = Color(0xFF17354A)
         )
