@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.budget.BudgetGoalScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.reports.CategoryTotalsScreen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.help.HelpScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -60,6 +61,8 @@ fun FinTrackApp() {
                         userId = 1,
                         budgetGoalDao = budgetGoalDao
                     )
+
+                    "Help" -> HelpScreen()
                 }
             }
         }

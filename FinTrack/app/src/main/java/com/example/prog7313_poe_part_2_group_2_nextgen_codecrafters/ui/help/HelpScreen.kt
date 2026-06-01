@@ -4,9 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -100,13 +97,9 @@ fun FAQItem(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                Icon(
-                    imageVector =
-                        if (expanded)
-                            Icons.Default.ExpandLess
-                        else
-                            Icons.Default.ExpandMore,
-                    contentDescription = null
+                Text(
+                    text = if (expanded) "−" else "+",
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
 
