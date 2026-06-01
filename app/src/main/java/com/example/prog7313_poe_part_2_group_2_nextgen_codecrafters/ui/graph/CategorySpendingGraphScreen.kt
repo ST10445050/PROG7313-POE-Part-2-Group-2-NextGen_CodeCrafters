@@ -761,7 +761,6 @@ private fun InteractiveCategoryBarChart(
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
-    val selectedBarColor = Color(0xFFA6F22E)
     val axisColor = Color.White.copy(alpha = 0.38f)
     val gridColor = Color.White.copy(alpha = 0.10f)
     val minGoalColor = Color(0xFF65D6D0)
@@ -826,8 +825,8 @@ private fun InteractiveCategoryBarChart(
                             }
                         }
 
-                        // If the user tapped a real bar, select it.
-                        // If the user tapped empty graph space, clear the selection.
+                        // Tapping a real bar selects it.
+                        // Tapping empty graph space clears the selected bar.
                         onBarSelected(tappedBarIndex)
                     }
                 )
@@ -846,7 +845,8 @@ private fun InteractiveCategoryBarChart(
 
         // The chart mainly scales according to spending.
         // Goals only stretch the axis if they are close enough to the spending values.
-        val shouldIncludeGoalsInAxis = maxGoalValue > 0.0 && maxGoalValue <= maxSpent * 2.5
+        val shouldIncludeGoalsInAxis =
+            maxGoalValue > 0.0 && maxGoalValue <= maxSpent * 2.5
 
         val rawMax = when {
             maxSpent <= 0.0 && maxGoalValue > 0.0 -> maxGoalValue
@@ -873,15 +873,21 @@ private fun InteractiveCategoryBarChart(
 
         val goalLabelPaint = android.graphics.Paint().apply {
             color = android.graphics.Color.WHITE
-
-            // Smaller goal label text so labels do not cover the bar values.
             textSize = 18f
-
             isAntiAlias = true
             textAlign = android.graphics.Paint.Align.CENTER
             isFakeBoldText = true
         }
 
+        val selectedAxisPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.WHITE
+            textSize = 19f
+            isAntiAlias = true
+            textAlign = android.graphics.Paint.Align.CENTER
+            isFakeBoldText = true
+        }
+
+        // Draw y-axis labels and grid lines.
         repeat(6) { index ->
             val y = topPadding + (chartHeight / 5f) * index
             val value = maxValue - (axisStep * index)
@@ -928,7 +934,6 @@ private fun InteractiveCategoryBarChart(
             val y = if (goalFitsInsideChart) {
                 topPadding + chartHeight - ((goal / maxValue).toFloat() * chartHeight)
             } else {
-                // If the goal is above the visible chart scale, show a badge near the top.
                 topPadding - 30f + verticalOffset
             }
 
@@ -949,7 +954,6 @@ private fun InteractiveCategoryBarChart(
 
             val finalLabel = if (goalFitsInsideChart) label else "$label ↑"
 
-            // Smaller label badge, moved further right so it does not cover the bars or bar values.
             val labelWidth = 104f
             val labelHeight = 26f
             val labelLeft = size.width - labelWidth - 6f
@@ -973,16 +977,11 @@ private fun InteractiveCategoryBarChart(
             drawContext.canvas.nativeCanvas.drawText(
                 finalLabel,
                 labelLeft + labelWidth / 2f,
-
-                // Adjusted because the label badge is smaller.
                 labelTop + 18f,
-
                 goalLabelPaint
             )
         }
 
-        // Minimum goal is light blue; maximum goal is red.
-        // Both are always displayed as indicators, either as actual lines or top badges.
         drawGoalIndicator(
             goal = minGoal,
             color = minGoalColor,
@@ -1000,17 +999,78 @@ private fun InteractiveCategoryBarChart(
         val slotWidth = chartWidth / data.size
         val barWidth = slotWidth * 0.50f
 
+        // Selected bar interaction guide.
+        // When a bar is selected, a matching-colour guide line goes from the bar to the y-axis.
+        // A temporary amount label also appears on the y-axis, even if that value is not part of the normal axis labels.
+        val selectedItem = data.getOrNull(selectedBarIndex)
+
+        if (selectedItem != null) {
+            val selectedColor = getCategoryGraphColor(
+                categoryName = selectedItem.categoryName,
+                index = selectedBarIndex
+            )
+
+            val selectedBarHeight = ((selectedItem.totalSpent / maxValue).toFloat() * chartHeight)
+            val selectedY = topPadding + chartHeight - selectedBarHeight
+            val selectedBarLeft =
+                leftPadding + (slotWidth * selectedBarIndex) + ((slotWidth - barWidth) / 2f)
+
+            // Horizontal guide line from selected bar to the y-axis.
+            drawLine(
+                color = selectedColor.copy(alpha = 0.95f),
+                start = Offset(leftPadding, selectedY),
+                end = Offset(selectedBarLeft, selectedY),
+                strokeWidth = 4f
+            )
+
+            // Dot on the y-axis to show the selected amount position.
+            drawCircle(
+                color = selectedColor,
+                radius = 6f,
+                center = Offset(leftPadding, selectedY)
+            )
+
+            val selectedAmountText = "R${selectedItem.totalSpent.toInt()}"
+            val amountBadgeWidth = 70f
+            val amountBadgeHeight = 25f
+            val amountBadgeLeft = 8f
+            val amountBadgeTop = (selectedY - amountBadgeHeight / 2f)
+                .coerceIn(topPadding, topPadding + chartHeight - amountBadgeHeight)
+
+            // Temporary y-axis amount badge.
+            drawRoundRect(
+                color = selectedColor.copy(alpha = 0.95f),
+                topLeft = Offset(amountBadgeLeft, amountBadgeTop),
+                size = Size(amountBadgeWidth, amountBadgeHeight),
+                cornerRadius = CornerRadius(8f, 8f)
+            )
+
+            drawRoundRect(
+                color = Color.White.copy(alpha = 0.75f),
+                topLeft = Offset(amountBadgeLeft, amountBadgeTop),
+                size = Size(amountBadgeWidth, amountBadgeHeight),
+                cornerRadius = CornerRadius(8f, 8f),
+                style = Stroke(width = 1.3f)
+            )
+
+            drawContext.canvas.nativeCanvas.drawText(
+                selectedAmountText,
+                amountBadgeLeft + amountBadgeWidth / 2f,
+                amountBadgeTop + 18f,
+                selectedAxisPaint
+            )
+        }
+
         data.forEachIndexed { index, item ->
             val barHeight = ((item.totalSpent / maxValue).toFloat() * chartHeight)
             val left = leftPadding + (slotWidth * index) + ((slotWidth - barWidth) / 2f)
             val top = topPadding + chartHeight - barHeight
 
             val normalBarColor = getCategoryGraphColor(item.categoryName, index)
-            val barColorToUse = if (index == selectedBarIndex) {
-                selectedBarColor
-            } else {
-                normalBarColor
-            }
+
+            // Selected bar now keeps its category colour.
+            // The highlight is shown using a brighter border and guide line instead of changing to lime.
+            val barColorToUse = normalBarColor
 
             drawRoundRect(
                 brush = Brush.verticalGradient(
@@ -1026,11 +1086,19 @@ private fun InteractiveCategoryBarChart(
 
             if (index == selectedBarIndex) {
                 drawRoundRect(
-                    color = Color.White.copy(alpha = 0.82f),
-                    topLeft = Offset(left - 4f, top - 4f),
-                    size = Size(barWidth + 8f, barHeight + 8f),
-                    cornerRadius = CornerRadius(14f, 14f),
-                    style = Stroke(width = 3f)
+                    color = normalBarColor.copy(alpha = 0.95f),
+                    topLeft = Offset(left - 6f, top - 6f),
+                    size = Size(barWidth + 12f, barHeight + 12f),
+                    cornerRadius = CornerRadius(15f, 15f),
+                    style = Stroke(width = 5f)
+                )
+
+                drawRoundRect(
+                    color = Color.White.copy(alpha = 0.85f),
+                    topLeft = Offset(left - 2f, top - 2f),
+                    size = Size(barWidth + 4f, barHeight + 4f),
+                    cornerRadius = CornerRadius(13f, 13f),
+                    style = Stroke(width = 2f)
                 )
             }
 
