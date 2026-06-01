@@ -1,0 +1,78 @@
+name: FinTrack Android Build and Automated Tests
+
+env:
+  main_project_module: app
+  app_name: FinTrack
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+      - "feature-*"
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build, Test, Lint and Upload APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout project code
+        uses: actions/checkout@v4
+
+      - name: Set current date
+        run: echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Set repository name
+        run: echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+
+      - name: Set branch name
+        run: echo "branch_name=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Give Gradle permission
+        run: chmod +x ./gradlew
+
+      - name: Check Gradle version
+        run: ./gradlew --version
+
+      - name: Run automated unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.date_today }} - ${{ env.app_name }} - Unit Test Reports
+          path: ${{ env.main_project_module }}/build/reports/tests/testDebugUnitTest/
+
+      - name: Run Android lint checks
+        run: ./gradlew lintDebug
+
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.date_today }} - ${{ env.app_name }} - Lint Reports
+          path: ${{ env.main_project_module }}/build/reports/lint-results-debug.html
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload FinTrack Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.date_today }} - ${{ env.app_name }} - ${{ env.repository_name }} - ${{ env.branch_name }} - Debug APK
+          path: ${{ env.main_project_module }}/build/outputs/apk/debug/*.apk
