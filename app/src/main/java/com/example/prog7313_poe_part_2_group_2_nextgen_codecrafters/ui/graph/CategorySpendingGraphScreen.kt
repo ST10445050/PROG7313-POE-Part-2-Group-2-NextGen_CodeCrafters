@@ -406,7 +406,11 @@ private fun DateFilterCard(
                         Text(
                             text = filter,
                             fontSize = 11.sp,
-                            fontWeight = if (selectedFilter == filter) FontWeight.Bold else FontWeight.Medium
+                            fontWeight = if (selectedFilter == filter) {
+                                FontWeight.Bold
+                            } else {
+                                FontWeight.Medium
+                            }
                         )
                     },
                     colors = FilterChipDefaults.filterChipColors(
@@ -454,7 +458,10 @@ private fun CompactAnalyticsSummaryCard(
 
         Spacer(modifier = Modifier.height(7.dp))
 
-        SummaryRow("Total Spent", "R ${String.format(Locale.getDefault(), "%.2f", totalSpent)}")
+        SummaryRow(
+            label = "Total Spent",
+            value = "R ${String.format(Locale.getDefault(), "%.2f", totalSpent)}"
+        )
 
         SummaryRow(
             label = "Highest",
@@ -825,7 +832,7 @@ private fun InteractiveCategoryBarChart(
                     }
                 )
             }
-    )  {
+    ) {
         val leftPadding = 92f
         val rightPadding = 30f
         val topPadding = 44f
@@ -866,7 +873,10 @@ private fun InteractiveCategoryBarChart(
 
         val goalLabelPaint = android.graphics.Paint().apply {
             color = android.graphics.Color.WHITE
-            textSize = 22f
+
+            // Smaller goal label text so labels do not cover the bar values.
+            textSize = 18f
+
             isAntiAlias = true
             textAlign = android.graphics.Paint.Align.CENTER
             isFakeBoldText = true
@@ -939,30 +949,34 @@ private fun InteractiveCategoryBarChart(
 
             val finalLabel = if (goalFitsInsideChart) label else "$label ↑"
 
-            val labelWidth = 132f
-            val labelHeight = 30f
-            val labelLeft = size.width - rightPadding - labelWidth
+            // Smaller label badge, moved further right so it does not cover the bars or bar values.
+            val labelWidth = 104f
+            val labelHeight = 26f
+            val labelLeft = size.width - labelWidth - 6f
             val labelTop = y.coerceIn(4f, topPadding + chartHeight - labelHeight)
 
             drawRoundRect(
                 color = color.copy(alpha = 0.95f),
                 topLeft = Offset(labelLeft, labelTop),
                 size = Size(labelWidth, labelHeight),
-                cornerRadius = CornerRadius(10f, 10f)
+                cornerRadius = CornerRadius(9f, 9f)
             )
 
             drawRoundRect(
                 color = Color.White.copy(alpha = 0.75f),
                 topLeft = Offset(labelLeft, labelTop),
                 size = Size(labelWidth, labelHeight),
-                cornerRadius = CornerRadius(10f, 10f),
-                style = Stroke(width = 1.8f)
+                cornerRadius = CornerRadius(9f, 9f),
+                style = Stroke(width = 1.5f)
             )
 
             drawContext.canvas.nativeCanvas.drawText(
                 finalLabel,
                 labelLeft + labelWidth / 2f,
-                labelTop + 21f,
+
+                // Adjusted because the label badge is smaller.
+                labelTop + 18f,
+
                 goalLabelPaint
             )
         }
