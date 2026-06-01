@@ -16,6 +16,8 @@ class CategoryViewModel(application: Application) : AndroidViewModel(application
 
     private val categoryDao = AppDatabase.getDatabase(application).categoryDao()
 
+    // Loads all categories from RoomDB.
+    // This includes both the default categories and user-created categories.
     val categories = categoryDao.getAllCategories()
         .stateIn(
             viewModelScope,
@@ -28,6 +30,32 @@ class CategoryViewModel(application: Application) : AndroidViewModel(application
 
     var categoryName by mutableStateOf("")
         private set
+
+    init {
+        // Inserts the default FinTrack categories when the ViewModel starts.
+        // These categories will be available for every user when using the app.
+        seedDefaultCategories()
+    }
+
+    private fun seedDefaultCategories() {
+        viewModelScope.launch {
+            val existingCategories = categories.value.map { it.name.lowercase().trim() }
+
+            val defaultCategories = listOf(
+                "Food",
+                "Transport",
+                "Groceries"
+            )
+
+            defaultCategories.forEach { defaultName ->
+                if (!existingCategories.contains(defaultName.lowercase())) {
+                    categoryDao.insertCategory(
+                        Category(name = defaultName)
+                    )
+                }
+            }
+        }
+    }
 
     fun onAddCategoryClick() {
         showAddCategoryBox = true

@@ -17,6 +17,7 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.E
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.budget.BudgetGoalScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.reports.CategoryTotalsScreen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.graph.CategorySpendingGraphScreen
 
 @Composable
 fun AppNavGraph() {
@@ -114,6 +115,17 @@ fun AppNavGraph() {
                 userId = userId,
                 budgetGoalDao = db.budgetGoalDao(),
                 expenseDao = db.expenseDao(),
+                navController = navController
+            )
+        }
+
+        composable("analytics/{userId}") {
+            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+
+            CategorySpendingGraphScreen(
+                userId = userId,
+                expenseDao = db.expenseDao(),
+                budgetGoalDao = db.budgetGoalDao(),
                 navController = navController
             )
         }
