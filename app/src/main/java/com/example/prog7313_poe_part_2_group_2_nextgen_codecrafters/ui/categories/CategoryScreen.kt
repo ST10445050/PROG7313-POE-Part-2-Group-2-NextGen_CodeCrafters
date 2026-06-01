@@ -189,9 +189,14 @@ fun CategoryScreen(
                         launchSingleTop = true
                     }
                 },
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
+                },
                 onLogoutClick = {
                     showMenu = false
-
                     navController.navigate("landing") {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true

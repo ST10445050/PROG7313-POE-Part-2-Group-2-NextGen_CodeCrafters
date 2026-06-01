@@ -16,6 +16,8 @@ class CategoryViewModel(application: Application) : AndroidViewModel(application
 
     private val categoryDao = AppDatabase.getDatabase(application).categoryDao()
 
+    // Loads all categories from RoomDB.
+    // This includes the 3 default categories and any custom categories added by the user.
     val categories = categoryDao.getAllCategories()
         .stateIn(
             viewModelScope,
@@ -28,6 +30,33 @@ class CategoryViewModel(application: Application) : AndroidViewModel(application
 
     var categoryName by mutableStateOf("")
         private set
+
+    init {
+        // Adds the default categories only if they do not already exist.
+        seedDefaultCategories()
+    }
+
+    private fun seedDefaultCategories() {
+        viewModelScope.launch {
+            val defaultCategories = listOf(
+                "Food",
+                "Transport",
+                "Groceries"
+            )
+
+            defaultCategories.forEach { defaultName ->
+
+
+                val existingCategory = categoryDao.getCategoryByName(defaultName)
+
+                if (existingCategory == null) {
+                    categoryDao.insertCategory(
+                        Category(name = defaultName)
+                    )
+                }
+            }
+        }
+    }
 
     fun onAddCategoryClick() {
         showAddCategoryBox = true
@@ -47,13 +76,26 @@ class CategoryViewModel(application: Application) : AndroidViewModel(application
 
         if (cleanName.isNotEmpty()) {
             viewModelScope.launch {
-                categoryDao.insertCategory(
-                    Category(name = cleanName)
-                )
+
+                // Prevents users from manually adding duplicate categories.
+                // Example: if Food already exists, food or FOOD will not be inserted again.
+                val existingCategory = categoryDao.getCategoryByName(cleanName)
+
+                if (existingCategory == null) {
+                    categoryDao.insertCategory(
+                        Category(name = cleanName)
+                    )
+                }
 
                 categoryName = ""
                 showAddCategoryBox = true
             }
+        }
+    }
+
+    fun deleteCategory(categoryId: Int) {
+        viewModelScope.launch {
+            categoryDao.deleteCategory(categoryId)
         }
     }
 }

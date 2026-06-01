@@ -27,11 +27,15 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.QuestionnaireAnswers
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.User
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.model.CategoryTotal
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.Locale
 
 @Composable
 fun DashboardScreen(
@@ -56,10 +60,31 @@ fun DashboardScreen(
         .getExpensesForUser(userId)
         .collectAsState(initial = emptyList())
 
+    // Calculates the total amount the user has spent.
+    val amountSpent = expenses.sumOf { it.amount }
+
+    // Stores the real category totals from RoomDB.
+    // This fixes the issue where an expense could appear under the wrong category.
+    var realCategoryTotals by remember {
+        mutableStateOf<List<CategoryTotal>>(emptyList())
+    }
+
     // Loads user details and questionnaire answers when the screen opens.
     LaunchedEffect(userId) {
         user = db.userDao().getUserById(userId)
         answers = db.questionnaireDao().getAnswersByUserId(userId)
+    }
+
+    // Loads the actual spending totals per category from RoomDB.
+    // This uses the categories table and expenses table together instead of guessing by category ID order.
+    LaunchedEffect(userId, expenses.size, amountSpent) {
+        realCategoryTotals = withContext(Dispatchers.IO) {
+            db.expenseDao().getTotalSpentByCategory(
+                userId = userId,
+                startDate = "2020-01-01",
+                endDate = "2030-12-31"
+            )
+        }
     }
 
     // Safely displays the user's name, or "User" if the database has no name.
@@ -68,9 +93,6 @@ fun DashboardScreen(
     // Pulls budget values from the questionnaire answers.
     val monthlyBudget = answers?.monthlyIncome ?: 0.0
     val savingsGoal = answers?.monthlySavingsGoal ?: 0.0
-
-    // Calculates how much the user has spent.
-    val amountSpent = expenses.sumOf { it.amount }
 
     // Calculates the remaining amount from the monthly budget.
     val remaining = monthlyBudget - amountSpent
@@ -88,13 +110,6 @@ fun DashboardScreen(
     } else {
         0f
     }
-
-    // Converts the stored comma-separated spending categories into a clean list.
-    val categories = answers?.spendingCategories
-        ?.split(",")
-        ?.map { it.trim() }
-        ?.filter { it.isNotBlank() }
-        ?: emptyList()
 
     // Shows the latest 3 expenses on the dashboard.
     val recentExpenses = expenses.takeLast(3).reversed()
@@ -231,42 +246,36 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    if (categories.isEmpty()) {
+                    // This section now uses actual category totals from RoomDB.
+                    // It no longer uses questionnaire category order or categoryId == index + 1.
+                    if (realCategoryTotals.isEmpty()) {
                         Text(
-                            text = "No spending categories selected yet.",
+                            text = "No spending recorded yet. Add expenses to view your category summary.",
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 16.sp
                         )
                     } else {
-                        categories.take(4).forEachIndexed { index, category ->
-                            val categoryTotal = expenses
-                                .filter { it.categoryId == index + 1 }
-                                .sumOf { it.amount }
-
-                            SpendingRow(
-                                icon = when (category.lowercase()) {
-                                    "groceries" -> Icons.Outlined.ShoppingBasket
-                                    "transport" -> Icons.Outlined.DirectionsCar
-                                    "subscriptions" -> Icons.Outlined.Receipt
-                                    "shopping" -> Icons.Outlined.ShoppingCart
-                                    "food", "eating out" -> Icons.Outlined.Restaurant
-                                    else -> Icons.Outlined.Category
-                                },
-                                title = category,
-                                amount = "R${categoryTotal.toInt()}",
-                                progress = if (monthlyBudget > 0) {
-                                    (categoryTotal / monthlyBudget).toFloat().coerceIn(0f, 1f)
-                                } else {
-                                    0f
-                                },
-                                color = listOf(
-                                    FinTrackLime,
-                                    FinTrackMint,
-                                    Color(0xFFB075D6),
-                                    Color(0xFFE85FA3)
-                                ).getOrElse(index) { FinTrackMint }
-                            )
-                        }
+                        realCategoryTotals
+                            .sortedByDescending { it.totalAmount }
+                            .take(4)
+                            .forEachIndexed { index, categoryTotal ->
+                                SpendingRow(
+                                    icon = getDashboardCategoryIcon(categoryTotal.categoryName),
+                                    title = categoryTotal.categoryName,
+                                    amount = "R${categoryTotal.totalAmount.toInt()}",
+                                    progress = if (monthlyBudget > 0) {
+                                        (categoryTotal.totalAmount / monthlyBudget)
+                                            .toFloat()
+                                            .coerceIn(0f, 1f)
+                                    } else {
+                                        0f
+                                    },
+                                    color = getDashboardCategoryColor(
+                                        categoryName = categoryTotal.categoryName,
+                                        index = index
+                                    )
+                                )
+                            }
                     }
                 }
 
@@ -321,8 +330,11 @@ fun DashboardScreen(
                             }
                         }
 
+                        // View Insights now opens the Analytics graph screen.
                         QuickAction("▥", "View\nInsights", Modifier.weight(1f)) {
-                            // This can be linked to an insights screen later.
+                            navController.navigate("analytics/$userId") {
+                                launchSingleTop = true
+                            }
                         }
 
                         QuickAction("✪", "Budget\nGoals", Modifier.weight(1f)) {
@@ -409,9 +421,14 @@ fun DashboardScreen(
                         launchSingleTop = true
                     }
                 },
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
+                },
                 onLogoutClick = {
                     showMenu = false
-
                     navController.navigate("landing") {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
@@ -541,5 +558,76 @@ private fun QuickAction(
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+private fun getDashboardCategoryIcon(categoryName: String): ImageVector {
+    val name = categoryName.lowercase(Locale.getDefault())
+
+    return when {
+        name.contains("grocery") || name.contains("groceries") ->
+            Icons.Outlined.ShoppingBasket
+
+        name.contains("transport") ||
+                name.contains("uber") ||
+                name.contains("taxi") ||
+                name.contains("fuel") ->
+            Icons.Outlined.DirectionsCar
+
+        name.contains("food") ||
+                name.contains("restaurant") ||
+                name.contains("meal") ||
+                name.contains("eating") ->
+            Icons.Outlined.Restaurant
+
+        name.contains("rent") ||
+                name.contains("housing") ||
+                name.contains("home") ->
+            Icons.Outlined.Home
+
+        name.contains("subscription") ||
+                name.contains("bill") ||
+                name.contains("receipt") ->
+            Icons.Outlined.Receipt
+
+        name.contains("shopping") ||
+                name.contains("clothing") ||
+                name.contains("clothes") ->
+            Icons.Outlined.ShoppingCart
+
+        name.contains("health") ||
+                name.contains("medical") ->
+            Icons.Outlined.LocalHospital
+
+        name.contains("gym") ||
+                name.contains("fitness") ->
+            Icons.Outlined.FitnessCenter
+
+        else ->
+            Icons.Outlined.Category
+    }
+}
+
+private fun getDashboardCategoryColor(
+    categoryName: String,
+    index: Int
+): Color {
+    val name = categoryName.lowercase(Locale.getDefault())
+
+    return when {
+        name.contains("food") -> FinTrackMint
+        name.contains("transport") -> FinTrackLime
+        name.contains("grocery") || name.contains("groceries") -> Color(0xFFB075D6)
+        name.contains("rent") || name.contains("housing") -> Color(0xFFE85FA3)
+        name.contains("subscription") || name.contains("bill") -> Color(0xFFFFB547)
+        name.contains("gym") || name.contains("fitness") -> Color(0xFF4DA3FF)
+        else -> listOf(
+            FinTrackLime,
+            FinTrackMint,
+            Color(0xFFB075D6),
+            Color(0xFFE85FA3),
+            Color(0xFFFFB547),
+            Color(0xFF4DA3FF)
+        )[index % 6]
     }
 }

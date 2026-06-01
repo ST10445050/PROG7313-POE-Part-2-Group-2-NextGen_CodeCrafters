@@ -55,7 +55,7 @@ budget goals, while providing insights into monthly spending.
 
 
 ---------------------------------------------------------------
-REFERENCES (Harvard Anglia Style – Alphabetical):
+REFERENCES:
 
 Android Developers (2019) *Save data in a local database using Room*.
 Available at: https://developer.android.com/training/data-storage/room
