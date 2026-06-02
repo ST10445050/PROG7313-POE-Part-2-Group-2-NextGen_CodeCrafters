@@ -5,9 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-<<<<<<< Updated upstream
-import androidx.compose.material.icons.filled.*
-=======
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Help
@@ -17,7 +14,6 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TrackChanges
->>>>>>> Stashed changes
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Divider
@@ -51,8 +47,6 @@ fun SharedTopBar(
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-
-        // Optional back button
         if (showBackButton) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
@@ -66,13 +60,22 @@ fun SharedTopBar(
             Spacer(modifier = Modifier.width(14.dp))
         }
 
-        // App title
-        Text("Fin", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
-        Text("Track", color = FinTrackMint, fontSize = 27.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Fin",
+            color = Color.White,
+            fontSize = 27.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = "Track",
+            color = FinTrackMint,
+            fontSize = 27.sp,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Hamburger menu
         Icon(
             imageVector = Icons.Default.Menu,
             contentDescription = "Open menu",
@@ -102,23 +105,49 @@ fun SharedBottomNav(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        SharedBottomNavItem(
+            icon = Icons.Default.Home,
+            label = "Dashboard",
+            selected = currentScreen == "dashboard",
+            onClick = {
+                navController.navigate("dashboard/$userId") {
+                    launchSingleTop = true
+                }
+            }
+        )
 
-        SharedBottomNavItem(Icons.Default.Home, "Dashboard", currentScreen == "dashboard") {
-            navController.navigate("dashboard/$userId") { launchSingleTop = true }
-        }
+        SharedBottomNavItem(
+            icon = Icons.Outlined.CreditCard,
+            label = "Expenses",
+            selected = currentScreen == "expenses",
+            onClick = {
+                navController.navigate("expense_list/$userId") {
+                    launchSingleTop = true
+                }
+            }
+        )
 
-        SharedBottomNavItem(Icons.Outlined.CreditCard, "Expenses", currentScreen == "expenses") {
-            navController.navigate("expense_list/$userId") { launchSingleTop = true }
-        }
+        SharedBottomNavItem(
+            icon = Icons.Outlined.Folder,
+            label = "Categories",
+            selected = currentScreen == "categories",
+            onClick = {
+                navController.navigate("categories/$userId") {
+                    launchSingleTop = true
+                }
+            }
+        )
 
-        SharedBottomNavItem(Icons.Outlined.Folder, "Categories", currentScreen == "categories") {
-            navController.navigate("categories/$userId") { launchSingleTop = true }
-        }
-
-        // Optional future screen
-        SharedBottomNavItem(Icons.Default.Settings, "Settings", currentScreen == "settings") {
-            navController.navigate("settings/$userId") { launchSingleTop = true }
-        }
+        SharedBottomNavItem(
+            icon = Icons.Default.Settings,
+            label = "Settings",
+            selected = currentScreen == "settings",
+            onClick = {
+                navController.navigate("settings/$userId") {
+                    launchSingleTop = true
+                }
+            }
+        )
     }
 }
 
@@ -158,11 +187,8 @@ fun SharedSideMenu(
     modifier: Modifier = Modifier,
     userName: String,
     onBudgetGoalsClick: () -> Unit,
-<<<<<<< Updated upstream
-=======
     onAnalyticsClick: () -> Unit,
     onHelpClick: () -> Unit = {},
->>>>>>> Stashed changes
     onLogoutClick: () -> Unit
 ) {
     Column(
@@ -173,8 +199,6 @@ fun SharedSideMenu(
             .background(Color(0xF0111C2D))
             .border(1.dp, Color.White.copy(alpha = 0.10f))
     ) {
-
-        // Header section
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -216,7 +240,6 @@ fun SharedSideMenu(
 
         Divider(color = Color.White.copy(alpha = 0.08f))
 
-        // Budget Goals navigation item
         SharedMenuItem(
             icon = Icons.Default.TrackChanges,
             title = "Budget Goals",
@@ -226,7 +249,15 @@ fun SharedSideMenu(
 
         Divider(color = Color.White.copy(alpha = 0.08f))
 
-        // Logout item
+        SharedMenuItem(
+            icon = Icons.Default.Analytics,
+            title = "Analytics",
+            iconColor = Color(0xFF65D6D0),
+            onClick = onAnalyticsClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
         SharedMenuItem(
             icon = Icons.Default.Help,
             title = "Help",

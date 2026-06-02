@@ -5,10 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
     kotlin("plugin.serialization") version "2.0.21"
 }
 
@@ -83,6 +80,7 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.ktor:ktor-client-android:3.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("io.github.jan-tennert.supabase:storage-kt:3.1.4")
 
     // Required for java.time.Instant on Android API below 26
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
@@ -96,16 +94,16 @@ dependencies {
     // Unit tests
     testImplementation(libs.junit)
 
-<<<<<<< Updated upstream
+
     implementation(platform("io.github.jan-tennert.supabase:bom:3.1.4"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.ktor:ktor-client-android:3.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
-=======
+
     // Android tests
->>>>>>> Stashed changes
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

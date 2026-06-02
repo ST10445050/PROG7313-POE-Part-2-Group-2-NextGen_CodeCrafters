@@ -20,7 +20,14 @@ import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -31,27 +38,23 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-<<<<<<< Updated upstream
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.QuestionnaireAnswers
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.User
-=======
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.ProfileDto
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.QuestionnaireAnswersDto
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.QuestionnaireRepository
->>>>>>> Stashed changes
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
-<<<<<<< Updated upstream
-=======
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackLime
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackMint
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackTeal
 import java.util.Locale
->>>>>>> Stashed changes
 
 @Composable
 fun DashboardScreen(
@@ -66,40 +69,37 @@ fun DashboardScreen(
     var answers by remember { mutableStateOf<QuestionnaireAnswersDto?>(null) }
     var showMenu by remember { mutableStateOf(false) }
 
-<<<<<<< Updated upstream
-    // Loads all expenses for the logged-in user.
-    val expenses by expenseViewModel
-        .getExpensesForUser(userId)
-        .collectAsState(initial = emptyList())
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentUserId by rememberUpdatedState(userId)
 
-    // Loads user details and questionnaire answers when the screen opens.
-=======
->>>>>>> Stashed changes
     LaunchedEffect(userId) {
         profile = profileRepository.getProfile(userId)
         answers = questionnaireRepository.getQuestionnaireAnswers(userId)
+        expenseViewModel.loadExpenses(userId)
     }
 
-<<<<<<< Updated upstream
-    // Safely displays the user's name, or "User" if the database has no name.
-    val userName = user?.name ?: "User"
+    DisposableEffect(lifecycleOwner, userId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                expenseViewModel.loadExpenses(currentUserId)
+            }
+        }
 
-    // Pulls budget values from the questionnaire answers.
-    val monthlyBudget = answers?.monthlyIncome ?: 0.0
-    val savingsGoal = answers?.monthlySavingsGoal ?: 0.0
+        lifecycleOwner.lifecycle.addObserver(observer)
 
-    // Calculates how much the user has spent.
-    val amountSpent = expenses.sumOf { it.amount }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
-    // Calculates the remaining amount from the monthly budget.
-=======
     val userName = profile?.name ?: "User"
 
     val monthlyBudget = answers?.monthlyIncome ?: 0.0
     val savingsGoal = answers?.monthlySavingsGoal ?: 0.0
 
-    val amountSpent = 0.0
->>>>>>> Stashed changes
+    val expenseList = expenseViewModel.expenses
+
+    val amountSpent = expenseList.sumOf { it.amount }
     val remaining = monthlyBudget - amountSpent
 
     val usedPercentage = if (monthlyBudget > 0) {
@@ -114,24 +114,13 @@ fun DashboardScreen(
         0f
     }
 
-<<<<<<< Updated upstream
-    // Converts the stored comma-separated spending categories into a clean list.
-    val categories = answers?.spendingCategories
-=======
-    val recentExpenses = emptyList<String>()
+    val categoryTotals = expenseList
+        .groupBy { it.categoryName }
+        .mapValues { entry -> entry.value.sumOf { it.amount } }
+        .toList()
+        .sortedByDescending { it.second }
 
-    val selectedCategories = answers?.selectedCategories
->>>>>>> Stashed changes
-        ?.split(",")
-        ?.map { it.trim() }
-        ?.filter { it.isNotBlank() }
-        ?: emptyList()
-<<<<<<< Updated upstream
-
-    // Shows the latest 3 expenses on the dashboard.
-    val recentExpenses = expenses.takeLast(3).reversed()
-=======
->>>>>>> Stashed changes
+    val recentExpenses = expenseList.take(3)
 
     val personalisedMessage = when (answers?.financialGoal) {
         "Save more money" -> "Your dashboard is focused on saving and reaching your monthly savings goal."
@@ -194,7 +183,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Text(
-                            text = "R${monthlyBudget.toInt()}",
+                            text = "R${String.format("%.0f", monthlyBudget)}",
                             color = Color.White,
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
@@ -231,15 +220,29 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(18.dp))
 
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        BudgetItem("Budget", "R${monthlyBudget.toInt()}", Modifier.weight(1f))
-                        BudgetItem("Spent", "R${amountSpent.toInt()}", Modifier.weight(1f))
-                        BudgetItem("Remaining", "R${remaining.toInt()}", Modifier.weight(1f))
+                        BudgetItem(
+                            label = "Budget",
+                            value = "R${String.format("%.0f", monthlyBudget)}",
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        BudgetItem(
+                            label = "Spent",
+                            value = "R${String.format("%.0f", amountSpent)}",
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        BudgetItem(
+                            label = "Remaining",
+                            value = "R${String.format("%.0f", remaining)}",
+                            modifier = Modifier.weight(1f)
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Savings Goal: R${savingsGoal.toInt()}",
+                        text = "Savings Goal: R${String.format("%.0f", savingsGoal)}",
                         color = FinTrackMint,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -258,54 +261,27 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-<<<<<<< Updated upstream
-                    if (categories.isEmpty()) {
-=======
-                    if (selectedCategories.isEmpty()) {
->>>>>>> Stashed changes
+                    if (categoryTotals.isEmpty()) {
                         Text(
-                            text = "No spending categories selected yet.",
+                            text = "No spending data yet. Add expenses to see your summary.",
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 16.sp
                         )
                     } else {
-<<<<<<< Updated upstream
-                        categories.take(4).forEachIndexed { index, category ->
-                            val categoryTotal = expenses
-                                .filter { it.categoryId == index + 1 }
-                                .sumOf { it.amount }
+                        categoryTotals.take(4).forEachIndexed { index, item ->
+                            val categoryName = item.first
+                            val totalAmount = item.second
 
                             SpendingRow(
-                                icon = when (category.lowercase()) {
-                                    "groceries" -> Icons.Outlined.ShoppingBasket
-                                    "transport" -> Icons.Outlined.DirectionsCar
-                                    "subscriptions" -> Icons.Outlined.Receipt
-                                    "shopping" -> Icons.Outlined.ShoppingCart
-                                    "food", "eating out" -> Icons.Outlined.Restaurant
-                                    else -> Icons.Outlined.Category
-                                },
-                                title = category,
-                                amount = "R${categoryTotal.toInt()}",
-                                progress = if (monthlyBudget > 0) {
-                                    (categoryTotal / monthlyBudget).toFloat().coerceIn(0f, 1f)
+                                icon = getDashboardCategoryIcon(categoryName),
+                                title = categoryName,
+                                amount = "R${String.format("%.2f", totalAmount)}",
+                                progress = if (amountSpent > 0) {
+                                    (totalAmount / amountSpent).toFloat().coerceIn(0f, 1f)
                                 } else {
                                     0f
                                 },
-                                color = listOf(
-                                    FinTrackLime,
-                                    FinTrackMint,
-                                    Color(0xFFB075D6),
-                                    Color(0xFFE85FA3)
-                                ).getOrElse(index) { FinTrackMint }
-=======
-                        selectedCategories.take(4).forEachIndexed { index, category ->
-                            SpendingRow(
-                                icon = getDashboardCategoryIcon(category),
-                                title = category,
-                                amount = "R0",
-                                progress = 0f,
-                                color = getDashboardCategoryColor(category, index)
->>>>>>> Stashed changes
+                                color = getDashboardCategoryColor(categoryName, index)
                             )
                         }
                     }
@@ -363,7 +339,9 @@ fun DashboardScreen(
                         }
 
                         QuickAction("▥", "View\nInsights", Modifier.weight(1f)) {
-                            // This can be linked to an insights screen later.
+                            navController.navigate("analytics/$userId") {
+                                launchSingleTop = true
+                            }
                         }
 
                         QuickAction("✪", "Budget\nGoals", Modifier.weight(1f)) {
@@ -393,6 +371,14 @@ fun DashboardScreen(
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 16.sp
                         )
+                    } else {
+                        recentExpenses.forEach { expense ->
+                            RecentExpenseRow(
+                                description = expense.description,
+                                categoryName = expense.categoryName,
+                                amount = expense.amount
+                            )
+                        }
                     }
                 }
             }
@@ -424,8 +410,6 @@ fun DashboardScreen(
                         launchSingleTop = true
                     }
                 },
-<<<<<<< Updated upstream
-=======
                 onAnalyticsClick = {
                     showMenu = false
                     navController.navigate("analytics/$userId") {
@@ -438,7 +422,6 @@ fun DashboardScreen(
                         launchSingleTop = true
                     }
                 },
->>>>>>> Stashed changes
                 onLogoutClick = {
                     showMenu = false
 
@@ -537,6 +520,45 @@ private fun SpendingRow(
 }
 
 @Composable
+private fun RecentExpenseRow(
+    description: String,
+    categoryName: String,
+    amount: Double
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 7.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = description.ifBlank { "Expense" },
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+
+            Text(
+                text = categoryName,
+                color = FinTrackMint,
+                fontSize = 13.sp,
+                maxLines = 1
+            )
+        }
+
+        Text(
+            text = "R${String.format("%.2f", amount)}",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
 private fun QuickAction(
     icon: String,
     label: String,
@@ -571,5 +593,76 @@ private fun QuickAction(
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+private fun getDashboardCategoryIcon(categoryName: String): ImageVector {
+    val name = categoryName.lowercase(Locale.getDefault())
+
+    return when {
+        name.contains("grocery") || name.contains("groceries") ->
+            Icons.Outlined.ShoppingBasket
+
+        name.contains("transport") ||
+                name.contains("uber") ||
+                name.contains("taxi") ||
+                name.contains("fuel") ->
+            Icons.Outlined.DirectionsCar
+
+        name.contains("food") ||
+                name.contains("restaurant") ||
+                name.contains("meal") ||
+                name.contains("eating") ->
+            Icons.Outlined.Restaurant
+
+        name.contains("rent") ||
+                name.contains("housing") ||
+                name.contains("home") ->
+            Icons.Outlined.Home
+
+        name.contains("subscription") ||
+                name.contains("bill") ||
+                name.contains("receipt") ->
+            Icons.Outlined.Receipt
+
+        name.contains("shopping") ||
+                name.contains("clothing") ||
+                name.contains("clothes") ->
+            Icons.Outlined.ShoppingCart
+
+        name.contains("health") ||
+                name.contains("medical") ->
+            Icons.Outlined.LocalHospital
+
+        name.contains("gym") ||
+                name.contains("fitness") ->
+            Icons.Outlined.FitnessCenter
+
+        else ->
+            Icons.Outlined.Category
+    }
+}
+
+private fun getDashboardCategoryColor(
+    categoryName: String,
+    index: Int
+): Color {
+    val name = categoryName.lowercase(Locale.getDefault())
+
+    return when {
+        name.contains("food") -> FinTrackMint
+        name.contains("transport") -> FinTrackLime
+        name.contains("grocery") || name.contains("groceries") -> Color(0xFFB075D6)
+        name.contains("rent") || name.contains("housing") -> Color(0xFFE85FA3)
+        name.contains("subscription") || name.contains("bill") -> Color(0xFFFFB547)
+        name.contains("gym") || name.contains("fitness") -> Color(0xFF4DA3FF)
+        else -> listOf(
+            FinTrackLime,
+            FinTrackMint,
+            Color(0xFFB075D6),
+            Color(0xFFE85FA3),
+            Color(0xFFFFB547),
+            Color(0xFF4DA3FF)
+        )[index % 6]
     }
 }

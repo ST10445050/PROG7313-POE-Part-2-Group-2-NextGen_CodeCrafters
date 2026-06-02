@@ -2,6 +2,7 @@ package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense
 
 import android.app.TimePickerDialog
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -14,7 +15,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,8 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Expense
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.categories.CategoryViewModel
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
@@ -44,7 +48,7 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseScreen(
-    userId: Int,
+    userId: String,
     viewModel: ExpenseViewModel,
     navController: NavController,
     onSaveSuccess: () -> Unit,
@@ -53,53 +57,52 @@ fun AddExpenseScreen(
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
 
-    // Stores the selected category from the user's saved RoomDB categories.
     var selectedCategoryName by remember { mutableStateOf("") }
-    var selectedCategoryId by remember { mutableStateOf(0) }
+    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
 
-    // Keeps the receipt image optional.
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Stores the selected expense date and time values.
     var date by remember { mutableStateOf("") }
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
 
-    // Controls whether the shared hamburger menu is visible.
     var showMenu by remember { mutableStateOf(false) }
+    var userName by remember { mutableStateOf("User") }
+    var expanded by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
-
-    // Stores the logged-in user's name for the shared side menu.
-    var userName by remember { mutableStateOf("User") }
-
-    // Loads the real user name from RoomDB using the current userId.
-    LaunchedEffect(userId) {
-        userName = db.userDao().getUserById(userId)?.name ?: "User"
-    }
+    val profileRepository = remember { ProfileRepository() }
 
     val calendar = Calendar.getInstance()
-
-    // Controls the Material date picker dialog.
     var showDateDialog by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
 
-    // Loads the categories from the CategoryViewModel.
-    val categories by categoryViewModel.categories.collectAsState()
-
-    // Controls whether the category dropdown is open.
-    var expanded by remember { mutableStateOf(false) }
-
-    // Opens the gallery so the user can optionally upload a receipt image.
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         imageUri = uri
     }
 
+    LaunchedEffect(userId) {
+        userName = profileRepository.getProfile(userId)?.name ?: "User"
+        categoryViewModel.loadCategories(userId)
+    }
+
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(categoryViewModel.errorMessage) {
+        categoryViewModel.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            categoryViewModel.clearError()
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background image used behind the screen content.
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -112,7 +115,6 @@ fun AddExpenseScreen(
                 .fillMaxSize()
                 .padding(bottom = 78.dp)
         ) {
-            // Shared top bar used across the app.
             SharedTopBar(
                 showBackButton = true,
                 onBackClick = {
@@ -170,7 +172,7 @@ fun AddExpenseScreen(
                             readOnly = true,
                             placeholder = {
                                 Text(
-                                    text = if (categories.isEmpty()) {
+                                    text = if (categoryViewModel.categories.isEmpty()) {
                                         "No categories created yet"
                                     } else {
                                         "Select category"
@@ -190,14 +192,14 @@ fun AddExpenseScreen(
                             },
                             colors = fieldColors(),
                             shape = RoundedCornerShape(10.dp),
-                            enabled = categories.isNotEmpty()
+                            enabled = categoryViewModel.categories.isNotEmpty()
                         )
 
                         ExposedDropdownMenu(
-                            expanded = expanded && categories.isNotEmpty(),
+                            expanded = expanded && categoryViewModel.categories.isNotEmpty(),
                             onDismissRequest = { expanded = false }
                         ) {
-                            categories.forEach { category ->
+                            categoryViewModel.categories.forEach { category ->
                                 DropdownMenuItem(
                                     text = { Text(category.name) },
                                     onClick = {
@@ -210,7 +212,7 @@ fun AddExpenseScreen(
                         }
                     }
 
-                    if (categories.isEmpty()) {
+                    if (categoryViewModel.categories.isEmpty()) {
                         Text(
                             text = "Create categories first before adding an expense.",
                             color = Color(0xFFB7C3D5),
@@ -330,25 +332,57 @@ fun AddExpenseScreen(
                     onClick = {
                         val parsedAmount = amount.toDoubleOrNull()
 
-                        // Saves the expense only when the amount and category are valid.
-                        if (parsedAmount != null && selectedCategoryId != 0) {
-                            viewModel.addExpense(
-                                Expense(
+                        when {
+                            parsedAmount == null -> {
+                                Toast.makeText(context, "Please enter a valid amount", Toast.LENGTH_SHORT).show()
+                            }
+
+                            selectedCategoryId == null || selectedCategoryName.isBlank() -> {
+                                Toast.makeText(context, "Please select a category", Toast.LENGTH_SHORT).show()
+                            }
+
+                            date.isBlank() -> {
+                                Toast.makeText(context, "Please select a date", Toast.LENGTH_SHORT).show()
+                            }
+
+                            startTime.isBlank() -> {
+                                Toast.makeText(context, "Please select a start time", Toast.LENGTH_SHORT).show()
+                            }
+
+                            endTime.isBlank() -> {
+                                Toast.makeText(context, "Please select an end time", Toast.LENGTH_SHORT).show()
+                            }
+
+                            description.isBlank() -> {
+                                Toast.makeText(context, "Please enter a description", Toast.LENGTH_SHORT).show()
+                            }
+
+                            else -> {
+                                viewModel.addExpense(
+                                    context = context,
                                     userId = userId,
                                     categoryId = selectedCategoryId,
+                                    categoryName = selectedCategoryName,
                                     date = date,
                                     startTime = startTime,
                                     endTime = endTime,
-                                    description = description,
+                                    description = description.trim(),
                                     amount = parsedAmount,
-                                    photoPath = imageUri?.toString()
-                                )
-                            )
+                                    imageUri = imageUri,
+                                    onSuccess = {
+                                        Toast.makeText(
+                                            context,
+                                            "Expense saved successfully",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
 
-                            onSaveSuccess()
+                                        onSaveSuccess()
+                                    }
+                                )
+                            }
                         }
                     },
-                    enabled = true,
+                    enabled = !viewModel.isLoading,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .height(56.dp)
@@ -364,10 +398,7 @@ fun AddExpenseScreen(
                         modifier = Modifier
                             .background(
                                 Brush.horizontalGradient(
-                                    listOf(
-                                        Color(0xFFA6F22E),
-                                        Color(0xFF38D6A5)
-                                    )
+                                    listOf(Color(0xFFA6F22E), Color(0xFF38D6A5))
                                 ),
                                 RoundedCornerShape(28.dp)
                             )
@@ -383,7 +414,7 @@ fun AddExpenseScreen(
                         Spacer(modifier = Modifier.width(8.dp))
 
                         Text(
-                            text = "Add Expense",
+                            text = if (viewModel.isLoading) "Saving..." else "Add Expense",
                             color = Color.White,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
@@ -393,15 +424,13 @@ fun AddExpenseScreen(
             }
         }
 
-        // Shared bottom navigation bar used across the app.
         SharedBottomNav(
             navController = navController,
-            userId = userId.toString(),
+            userId = userId,
             currentScreen = "expenses",
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // Shared side menu overlay.
         if (showMenu) {
             Box(
                 modifier = Modifier
@@ -417,13 +446,10 @@ fun AddExpenseScreen(
                 userName = userName,
                 onBudgetGoalsClick = {
                     showMenu = false
-
                     navController.navigate("budget_goals/$userId") {
                         launchSingleTop = true
                     }
                 },
-<<<<<<< Updated upstream
-=======
                 onAnalyticsClick = {
                     showMenu = false
                     navController.navigate("analytics/$userId") {
@@ -436,10 +462,8 @@ fun AddExpenseScreen(
                         launchSingleTop = true
                     }
                 },
->>>>>>> Stashed changes
                 onLogoutClick = {
                     showMenu = false
-
                     navController.navigate("landing") {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
@@ -458,7 +482,6 @@ fun AddExpenseScreen(
                         datePickerState.selectedDateMillis?.let {
                             val cal = Calendar.getInstance().apply { timeInMillis = it }
 
-                            // Saves the date in yyyy-MM-dd format so filtering works correctly.
                             date = "%04d-%02d-%02d".format(
                                 cal.get(Calendar.YEAR),
                                 cal.get(Calendar.MONTH) + 1,

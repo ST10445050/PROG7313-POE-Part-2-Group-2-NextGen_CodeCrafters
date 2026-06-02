@@ -20,14 +20,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
+
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.AuthRepository
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackLime
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackMint
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackNavy
 import kotlinx.coroutines.launch
 
 @Composable
@@ -84,6 +88,7 @@ fun RegisterScreen(navController: NavController) {
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold
                 )
+
                 Text(
                     text = "Track",
                     color = FinTrackMint,
@@ -149,7 +154,7 @@ fun RegisterScreen(navController: NavController) {
                             ).show()
                         }
 
-                        !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
+                        !Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() -> {
                             Toast.makeText(
                                 context,
                                 "Email must contain @ and be valid",
@@ -176,18 +181,15 @@ fun RegisterScreen(navController: NavController) {
                         else -> {
                             scope.launch {
                                 try {
-<<<<<<< Updated upstream
-=======
                                     isLoading = true
 
->>>>>>> Stashed changes
                                     val newUserId = authRepository.registerUser(
-                                        name = name,
-                                        surname = surname,
-                                        email = email,
+                                        name = name.trim(),
+                                        surname = surname.trim(),
+                                        email = email.trim(),
                                         gender = gender,
-                                        phone = phone,
-                                        username = username,
+                                        phone = phone.trim(),
+                                        username = username.trim(),
                                         password = password
                                     )
 
@@ -202,22 +204,15 @@ fun RegisterScreen(navController: NavController) {
                                             inclusive = true
                                         }
                                     }
-<<<<<<< Updated upstream
-=======
 
-
->>>>>>> Stashed changes
                                 } catch (e: Exception) {
                                     Toast.makeText(
                                         context,
                                         e.message ?: "Registration failed. Please try again.",
                                         Toast.LENGTH_LONG
                                     ).show()
-<<<<<<< Updated upstream
-=======
                                 } finally {
                                     isLoading = false
->>>>>>> Stashed changes
                                 }
                             }
                         }

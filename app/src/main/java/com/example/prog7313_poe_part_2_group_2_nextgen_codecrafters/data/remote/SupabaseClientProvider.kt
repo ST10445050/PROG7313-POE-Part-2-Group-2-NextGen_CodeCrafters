@@ -3,6 +3,7 @@ package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remote
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.storage.Storage
 
 object SupabaseClientProvider {
 
@@ -12,5 +13,6 @@ object SupabaseClientProvider {
     ) {
         install(Auth)
         install(Postgrest)
+        install(Storage)
     }
 }

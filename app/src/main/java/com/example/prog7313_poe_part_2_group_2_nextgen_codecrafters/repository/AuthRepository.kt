@@ -19,28 +19,6 @@ class AuthRepository {
         username: String,
         password: String
     ): String {
-<<<<<<< Updated upstream
-        supabase.auth.signUpWith(Email) {
-            this.email = email
-            this.password = password
-        }
-
-        val userId = supabase.auth.currentUserOrNull()?.id
-            ?: throw Exception("Registration failed. User ID not found.")
-
-        supabase.from("profiles").insert(
-            ProfileDto(
-                id = userId,
-                name = name,
-                surname = surname,
-                email = email,
-                gender = gender,
-                phone = phone,
-                username = username,
-                fullName = "$name $surname"
-            )
-        )
-=======
         try {
             supabase.auth.signUpWith(Email) {
                 this.email = email.trim()
@@ -62,24 +40,17 @@ class AuthRepository {
                     email = email.trim(),
                     gender = gender,
                     phone = phone,
-                    username = username,
+                    username = username.trim(),
                     fullName = "$name $surname"
                 )
             )
         } catch (e: Exception) {
             throw Exception("Profile insert failed: ${e.message}")
         }
->>>>>>> Stashed changes
 
         return userId
     }
 
-<<<<<<< Updated upstream
-    suspend fun loginUser(email: String, password: String) {
-        supabase.auth.signInWith(Email) {
-            this.email = email
-            this.password = password
-=======
     suspend fun loginUserWithUsername(
         username: String,
         password: String
@@ -133,17 +104,6 @@ class AuthRepository {
             )
         } catch (e: Exception) {
             throw Exception("Password reset email failed: ${e.message}")
-        }
-    }
-
-    suspend fun updateRecoveredPassword(newPassword: String) {
-        try {
-            supabase.auth.updateUser {
-                password = newPassword
-            }
-        } catch (e: Exception) {
-            throw Exception("Password update failed: ${e.message}")
->>>>>>> Stashed changes
         }
     }
 

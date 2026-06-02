@@ -1,59 +1,95 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.categories
 
-import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Category
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.CategoryDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.CategoryRepository
 import kotlinx.coroutines.launch
 
-class CategoryViewModel(application: Application) : AndroidViewModel(application) {
+class CategoryViewModel : ViewModel() {
 
-    private val categoryDao = AppDatabase.getDatabase(application).categoryDao()
+    private val categoryRepository = CategoryRepository()
 
-    val categories = categoryDao.getAllCategories()
-        .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            emptyList()
-        )
-
-    var showAddCategoryBox by mutableStateOf(true)
+    var categories by mutableStateOf<List<CategoryDto>>(emptyList())
         private set
 
     var categoryName by mutableStateOf("")
         private set
 
-    fun onAddCategoryClick() {
-        showAddCategoryBox = true
+    var isLoading by mutableStateOf(false)
+        private set
+
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    fun loadCategories(userId: String) {
+        viewModelScope.launch {
+            try {
+                isLoading = true
+                errorMessage = null
+                categories = categoryRepository.getCategoriesForUser(userId)
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "Could not load categories"
+            } finally {
+                isLoading = false
+            }
+        }
     }
 
     fun onCategoryNameChange(newName: String) {
         categoryName = newName
     }
 
-    fun cancelAddCategory() {
-        categoryName = ""
-        showAddCategoryBox = true
-    }
-
-    fun saveCategory() {
+    fun saveCategory(userId: String) {
         val cleanName = categoryName.trim()
 
-        if (cleanName.isNotEmpty()) {
-            viewModelScope.launch {
-                categoryDao.insertCategory(
-                    Category(name = cleanName)
+        if (cleanName.isEmpty()) {
+            errorMessage = "Please enter a category name"
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                isLoading = true
+                errorMessage = null
+
+                categoryRepository.addCategory(
+                    userId = userId,
+                    name = cleanName
                 )
 
                 categoryName = ""
-                showAddCategoryBox = true
+                categories = categoryRepository.getCategoriesForUser(userId)
+
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "Could not save category"
+            } finally {
+                isLoading = false
             }
         }
+    }
+
+    fun deleteCategory(userId: String, categoryId: String) {
+        viewModelScope.launch {
+            try {
+                isLoading = true
+                errorMessage = null
+
+                categoryRepository.deleteCategory(categoryId)
+                categories = categoryRepository.getCategoriesForUser(userId)
+
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "Could not delete category"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun clearError() {
+        errorMessage = null
     }
 }

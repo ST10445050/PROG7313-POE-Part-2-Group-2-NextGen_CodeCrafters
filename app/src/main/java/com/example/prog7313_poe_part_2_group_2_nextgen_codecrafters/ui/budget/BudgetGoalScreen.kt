@@ -27,7 +27,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,7 +39,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -48,10 +46,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.BudgetGoalDao
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.ExpenseDao
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.BudgetGoal
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.BudgetGoalDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.BudgetGoalRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ExpenseRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
@@ -63,21 +61,17 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetGoalScreen(
-    userId: Int,
-    budgetGoalDao: BudgetGoalDao,
-    expenseDao: ExpenseDao,
+    userId: String,
     navController: NavController
 ) {
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
     val scope = rememberCoroutineScope()
+
+    val profileRepository = remember { ProfileRepository() }
+    val budgetGoalRepository = remember { BudgetGoalRepository() }
+    val expenseRepository = remember { ExpenseRepository() }
 
     var userName by remember { mutableStateOf("User") }
     var showMenu by remember { mutableStateOf(false) }
-
-    LaunchedEffect(userId) {
-        userName = db.userDao().getUserById(userId)?.name ?: "User"
-    }
 
     val months = listOf(
         "January", "February", "March", "April",
@@ -97,42 +91,47 @@ fun BudgetGoalScreen(
     var maximumBudget by remember { mutableStateOf("") }
     var feedbackMessage by remember { mutableStateOf("") }
 
-    var savedGoal by remember { mutableStateOf<BudgetGoal?>(null) }
+    var savedGoal by remember { mutableStateOf<BudgetGoalDto?>(null) }
+    var totalSpent by remember { mutableStateOf(0.0) }
 
     val selectedMonthNumber = months.indexOf(selectedMonth) + 1
     val startDate = getMonthStartDate(selectedYear, selectedMonthNumber)
     val endDate = getMonthEndDate(selectedYear, selectedMonthNumber)
 
-    // Pulls ALL expenses for this user in the selected month.
-    // This is not category-specific. It includes every category.
-    val monthlyExpenses by expenseDao.getExpensesForUserByDateRange(
-        userId = userId,
-        startDate = startDate,
-        endDate = endDate
-    ).collectAsState(initial = emptyList())
-
-    // Adds all expense amounts together to get the total spent.
-    val totalSpent = monthlyExpenses.sumOf { expense ->
-        expense.amount
+    LaunchedEffect(userId) {
+        userName = profileRepository.getProfile(userId)?.name ?: "User"
     }
 
     LaunchedEffect(userId, selectedMonthNumber, selectedYear) {
-        val goal = budgetGoalDao.getBudgetGoal(
-            userId = userId,
-            month = selectedMonthNumber,
-            year = selectedYear
-        )
+        try {
+            val goal = budgetGoalRepository.getBudgetGoal(
+                userId = userId,
+                month = selectedMonthNumber,
+                year = selectedYear
+            )
 
-        savedGoal = goal
+            savedGoal = goal
 
-        if (goal != null) {
-            minimumBudget = goal.minimumGoal.toString()
-            maximumBudget = goal.maximumGoal.toString()
-            feedbackMessage = "Saved goal loaded for $selectedMonth $selectedYear."
-        } else {
-            minimumBudget = ""
-            maximumBudget = ""
-            feedbackMessage = ""
+            if (goal != null) {
+                minimumBudget = goal.minimumGoal.toString()
+                maximumBudget = goal.maximumGoal.toString()
+                feedbackMessage = "Saved goal loaded for $selectedMonth $selectedYear."
+            } else {
+                minimumBudget = ""
+                maximumBudget = ""
+                feedbackMessage = ""
+            }
+
+            val expenses = expenseRepository.getExpensesForUserByDateRange(
+                userId = userId,
+                startDate = startDate,
+                endDate = endDate
+            )
+
+            totalSpent = expenses.sumOf { it.amount }
+
+        } catch (e: Exception) {
+            feedbackMessage = e.message ?: "Could not load budget goal."
         }
     }
 
@@ -258,7 +257,12 @@ fun BudgetGoalScreen(
 
                     OutlinedTextField(
                         value = minimumBudget,
-                        onValueChange = { minimumBudget = it },
+                        onValueChange = {
+                            minimumBudget = it
+                            savedGoal = savedGoal?.copy(
+                                minimumGoal = it.toDoubleOrNull() ?: savedGoal?.minimumGoal ?: 0.0
+                            )
+                        },
                         placeholder = {
                             Text(
                                 text = "Example: 1000",
@@ -278,7 +282,12 @@ fun BudgetGoalScreen(
 
                     OutlinedTextField(
                         value = maximumBudget,
-                        onValueChange = { maximumBudget = it },
+                        onValueChange = {
+                            maximumBudget = it
+                            savedGoal = savedGoal?.copy(
+                                maximumGoal = it.toDoubleOrNull() ?: savedGoal?.maximumGoal ?: 0.0
+                            )
+                        },
                         placeholder = {
                             Text(
                                 text = "Example: 3000",
@@ -328,17 +337,28 @@ fun BudgetGoalScreen(
 
                                 else -> {
                                     scope.launch {
-                                        val goal = BudgetGoal(
-                                            userId = userId,
-                                            month = selectedMonthNumber,
-                                            year = selectedYear,
-                                            minimumGoal = minValue,
-                                            maximumGoal = maxValue
-                                        )
+                                        try {
+                                            val goal = BudgetGoalDto(
+                                                budgetGoalId = savedGoal?.budgetGoalId,
+                                                userId = userId,
+                                                month = selectedMonthNumber,
+                                                year = selectedYear,
+                                                minimumGoal = minValue,
+                                                maximumGoal = maxValue
+                                            )
 
-                                        budgetGoalDao.insertBudgetGoal(goal)
-                                        savedGoal = goal
-                                        feedbackMessage = "Budget goal saved for $selectedMonth $selectedYear."
+                                            budgetGoalRepository.saveBudgetGoal(goal)
+
+                                            savedGoal = budgetGoalRepository.getBudgetGoal(
+                                                userId = userId,
+                                                month = selectedMonthNumber,
+                                                year = selectedYear
+                                            )
+
+                                            feedbackMessage = "Budget goal saved for $selectedMonth $selectedYear."
+                                        } catch (e: Exception) {
+                                            feedbackMessage = e.message ?: "Could not save budget goal."
+                                        }
                                     }
                                 }
                             }
@@ -404,7 +424,7 @@ fun BudgetGoalScreen(
 
         SharedBottomNav(
             navController = navController,
-            userId = userId.toString(),
+            userId = userId,
             currentScreen = "settings",
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -424,6 +444,12 @@ fun BudgetGoalScreen(
                 userName = userName,
                 onBudgetGoalsClick = {
                     showMenu = false
+                },
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
                 },
                 onHelpClick = {
                     showMenu = false

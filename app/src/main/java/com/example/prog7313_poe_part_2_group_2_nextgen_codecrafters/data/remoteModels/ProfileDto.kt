@@ -6,10 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ProfileDto(
     val id: String,
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
     val name: String,
     val surname: String,
     val email: String,
