@@ -11,7 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Help
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -21,14 +21,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.HelpFaqDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.HelpRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
@@ -37,40 +38,32 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.Fin
 @Composable
 fun HelpScreen(
     navController: NavController,
-    userId: Int
+    userId: String
 ) {
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
+    val profileRepository = remember { ProfileRepository() }
+    val helpRepository = remember { HelpRepository() }
 
     var userName by remember { mutableStateOf("User") }
     var showMenu by remember { mutableStateOf(false) }
 
+    var faqs by remember { mutableStateOf<List<HelpFaqDto>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
     LaunchedEffect(userId) {
-        userName = db.userDao().getUserById(userId)?.name ?: "User"
+        try {
+            isLoading = true
+            errorMessage = ""
+
+            userName = profileRepository.getProfile(userId)?.name ?: "User"
+            faqs = helpRepository.getHelpFaqs()
+
+        } catch (e: Exception) {
+            errorMessage = e.message ?: "Could not load help information."
+        } finally {
+            isLoading = false
+        }
     }
-
-    val faqs = listOf(
-        "What is FinTrack?" to
-                "FinTrack is a budgeting and expense tracking application that helps users manage their money, monitor expenses, and track spending habits.",
-
-        "How do I add a new expense?" to
-                "Go to the Expenses section, select Add Expense, then enter the amount, category, date, time, and description before saving.",
-
-        "Can I upload a receipt for my expenses?" to
-                "Yes. When adding an expense, you can attach an optional image, such as a receipt or proof of purchase.",
-
-        "How do I create categories?" to
-                "Open the Categories section. FinTrack includes default categories such as Food, Transport, and Groceries, and you can add your own custom categories.",
-
-        "How do I set my monthly budget goals?" to
-                "Open Budget Goals from the menu and enter your minimum and maximum monthly spending goals for the selected month.",
-
-        "How does the analytics graph work?" to
-                "The Analytics page displays your spending per category using a bar graph. You can filter by date, zoom in, tap bars, and compare spending against your monthly goals.",
-
-        "What should I do if I forget my password?" to
-                "Use the reset password option on the login screen and follow the steps to create a new password."
-    )
 
     Box(
         modifier = Modifier
@@ -115,14 +108,13 @@ fun HelpScreen(
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Bold
                 )
+
                 Text(
                     text = "Find answers to common questions about using FinTrack.",
                     color = Color(0xFFB7C3D5),
                     fontSize = 15.sp,
                     modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
                 )
-
-
 
                 Text(
                     text = "Frequently Asked Questions",
@@ -133,18 +125,49 @@ fun HelpScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                faqs.forEach { faq ->
-                    FAQItem(
-                        question = faq.first,
-                        answer = faq.second
-                    )
+                when {
+                    isLoading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = FinTrackMint)
+                        }
+                    }
+
+                    errorMessage.isNotBlank() -> {
+                        Text(
+                            text = errorMessage,
+                            color = Color.White.copy(alpha = 0.80f),
+                            fontSize = 15.sp
+                        )
+                    }
+
+                    faqs.isEmpty() -> {
+                        Text(
+                            text = "No help information is available yet.",
+                            color = Color.White.copy(alpha = 0.80f),
+                            fontSize = 15.sp
+                        )
+                    }
+
+                    else -> {
+                        faqs.forEach { faq ->
+                            FAQItem(
+                                question = faq.question,
+                                answer = faq.answer
+                            )
+                        }
+                    }
                 }
             }
         }
 
         SharedBottomNav(
             navController = navController,
-            userId = userId.toString(),
+            userId = userId,
             currentScreen = "help",
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -176,9 +199,6 @@ fun HelpScreen(
                 },
                 onHelpClick = {
                     showMenu = false
-                    navController.navigate("help/$userId") {
-                        launchSingleTop = true
-                    }
                 },
                 onLogoutClick = {
                     showMenu = false
@@ -191,9 +211,6 @@ fun HelpScreen(
         }
     }
 }
-
-
-
 
 @Composable
 private fun FAQItem(

@@ -120,10 +120,8 @@ fun AppNavGraph(startDestination: String = "landing")  {
             )
         }
 
-        composable("help/{userId}") { backStackEntry ->
-            val userId = backStackEntry.arguments
-                ?.getString("userId")
-                ?.toIntOrNull() ?: 0
+        composable("help/{userId}") {
+            val userId = it.arguments?.getString("userId") ?: ""
 
             HelpScreen(
                 navController = navController,
