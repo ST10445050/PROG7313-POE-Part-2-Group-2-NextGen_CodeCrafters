@@ -110,12 +110,10 @@ fun AppNavGraph(startDestination: String = "landing")  {
 
 
         composable("analytics/{userId}") {
-            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val userId = it.arguments?.getString("userId") ?: ""
 
             CategorySpendingGraphScreen(
                 userId = userId,
-                expenseDao = db.expenseDao(),
-                budgetGoalDao = db.budgetGoalDao(),
                 navController = navController
             )
         }
