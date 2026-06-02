@@ -27,6 +27,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.screens.BudgetProgressSummarySection
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.screens.SpendingSummaryItem
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.screens.getCategoryColor
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.screens.getCategoryIcon
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Search
@@ -273,10 +277,18 @@ fun CategorySpendingGraphScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                BudgetProgressTrackingCard(
-                    totalSpent = totalSpent,
+                BudgetProgressSummarySection(
                     minimumGoal = budgetGoal?.minimumGoal,
-                    maximumGoal = budgetGoal?.maximumGoal
+                    maximumGoal = budgetGoal?.maximumGoal,
+                    amountSpent = totalSpent,
+                    spendingItems = graphData.map {
+                        SpendingSummaryItem(
+                            categoryName = it.categoryName,
+                            amountSpent = it.totalSpent,
+                            icon = getCategoryIcon(it.categoryName),
+                            progressColor = getCategoryColor(it.categoryName)
+                        )
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))

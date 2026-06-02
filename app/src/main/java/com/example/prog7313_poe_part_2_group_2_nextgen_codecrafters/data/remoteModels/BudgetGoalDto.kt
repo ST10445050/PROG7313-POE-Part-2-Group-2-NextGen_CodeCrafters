@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class BudgetGoalDto(
     @SerialName("budget_goal_id")
-    val budgetGoalId: String? = null,
+    val budgetGoalId: Int? = null,
 
     @SerialName("user_id")
     val userId: String,
