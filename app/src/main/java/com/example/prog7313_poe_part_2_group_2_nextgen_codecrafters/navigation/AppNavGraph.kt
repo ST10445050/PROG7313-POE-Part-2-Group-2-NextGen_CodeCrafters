@@ -4,11 +4,11 @@ package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.navigation
 import android.net.Uri
 import androidx.compose.runtime.Composable
 
-import androidx.compose.ui.platform.LocalContext
+
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
+
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.*
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.categories.CategoryScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.dashboard.DashboardScreen
@@ -24,8 +24,6 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.help.Help
 @Composable
 fun AppNavGraph(startDestination: String = "landing")  {
     val navController = rememberNavController()
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
 
     val expenseViewModel: ExpenseViewModel = viewModel()
 
