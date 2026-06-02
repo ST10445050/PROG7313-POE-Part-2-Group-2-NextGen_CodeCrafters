@@ -30,6 +30,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.TrackChanges
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingFlat
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.Button
@@ -42,6 +46,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
@@ -61,10 +66,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,15 +78,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.BudgetGoalDao
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.ExpenseDao
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.BudgetGoal
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.BudgetGoalDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.BudgetGoalRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ExpenseRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -95,20 +98,18 @@ data class CategorySpendingGraphData(
 
 @Composable
 fun CategorySpendingGraphScreen(
-    userId: Int,
-    expenseDao: ExpenseDao,
-    budgetGoalDao: BudgetGoalDao,
+    userId: String,
     navController: NavController
 ) {
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
+    val profileRepository = remember { ProfileRepository() }
+    val expenseRepository = remember { ExpenseRepository() }
+    val budgetGoalRepository = remember { BudgetGoalRepository() }
 
     var userName by remember { mutableStateOf("User") }
     var showMenu by remember { mutableStateOf(false) }
 
     var selectedFilter by remember { mutableStateOf("This Month") }
 
-    // The default analytics view shows the full current month.
     var startDate by remember { mutableStateOf(getMonthStartDate()) }
     var endDate by remember { mutableStateOf(getMonthEndDate()) }
 
@@ -118,47 +119,50 @@ fun CategorySpendingGraphScreen(
     var selectedBarIndex by remember { mutableIntStateOf(-1) }
     var zoomScale by remember { mutableStateOf(1f) }
 
-    var budgetGoal by remember { mutableStateOf<BudgetGoal?>(null) }
+    var budgetGoal by remember { mutableStateOf<BudgetGoalDto?>(null) }
+    var errorMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(userId) {
-        userName = db.userDao().getUserById(userId)?.name ?: "User"
+        userName = profileRepository.getProfile(userId)?.name ?: "User"
     }
 
-    // Reloads category totals and the correct monthly budget goal whenever the date filter changes.
     LaunchedEffect(userId, startDate, endDate) {
-        val totals = withContext(Dispatchers.IO) {
-            expenseDao.getTotalSpentByCategory(
+        try {
+            errorMessage = ""
+
+            val expenses = expenseRepository.getExpensesForUserByDateRange(
                 userId = userId,
                 startDate = startDate,
                 endDate = endDate
             )
-        }
 
-        graphData = totals.map {
-            CategorySpendingGraphData(
-                categoryName = it.categoryName,
-                totalSpent = it.totalAmount.toDouble()
-            )
-        }
+            graphData = expenses
+                .groupBy { it.categoryName }
+                .map { (categoryName, categoryExpenses) ->
+                    CategorySpendingGraphData(
+                        categoryName = categoryName,
+                        totalSpent = categoryExpenses.sumOf { it.amount }
+                    )
+                }
+                .sortedBy { it.categoryName }
 
-        selectedBarIndex = -1
+            selectedBarIndex = -1
 
-        // Budget goals are monthly.
-        // If the selected filter range includes today, the app uses today's month/year.
-        // This fixes "This Week" when the week starts in the previous month but today is in the current month.
-        // If the user selects a custom range in another month, the app uses that selected range month.
-        val monthYear = getBudgetGoalMonthAndYearForRange(startDate, endDate)
+            val monthYear = getBudgetGoalMonthAndYearForRange(startDate, endDate)
 
-        budgetGoal = if (monthYear != null) {
-            withContext(Dispatchers.IO) {
-                budgetGoalDao.getBudgetGoal(
+            budgetGoal = if (monthYear != null) {
+                budgetGoalRepository.getBudgetGoal(
                     userId = userId,
                     month = monthYear.first,
                     year = monthYear.second
                 )
+            } else {
+                null
             }
-        } else {
-            null
+        } catch (e: Exception) {
+            errorMessage = e.message ?: "Could not load analytics data."
+            graphData = emptyList()
+            budgetGoal = null
         }
     }
 
@@ -232,16 +236,12 @@ fun CategorySpendingGraphScreen(
 
                             "This Week" -> {
                                 selectedFilter = "This Week"
-
-                                // Always Sunday to Saturday based on the device/emulator system date.
                                 startDate = getWeekStartDate()
                                 endDate = getWeekEndDate()
                             }
 
                             "This Month" -> {
                                 selectedFilter = "This Month"
-
-                                // Full current month: first day to last day.
                                 startDate = getMonthStartDate()
                                 endDate = getMonthEndDate()
                             }
@@ -253,12 +253,30 @@ fun CategorySpendingGraphScreen(
                     }
                 )
 
+                if (errorMessage.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = errorMessage,
+                        color = Color.White.copy(alpha = 0.80f),
+                        fontSize = 13.sp
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 CompactAnalyticsSummaryCard(
                     totalSpent = totalSpent,
                     highestCategory = highestCategory,
                     selectedCategory = selectedCategory
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                BudgetProgressTrackingCard(
+                    totalSpent = totalSpent,
+                    minimumGoal = budgetGoal?.minimumGoal,
+                    maximumGoal = budgetGoal?.maximumGoal
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -306,7 +324,10 @@ fun CategorySpendingGraphScreen(
                 },
                 onAnalyticsClick = {
                     showMenu = false
-                    navController.navigate("analytics/$userId") {
+                },
+                onHelpClick = {
+                    showMenu = false
+                    navController.navigate("help/$userId") {
                         launchSingleTop = true
                     }
                 },
@@ -486,6 +507,146 @@ private fun CompactAnalyticsSummaryCard(
 }
 
 @Composable
+private fun BudgetProgressTrackingCard(
+    totalSpent: Double,
+    minimumGoal: Double?,
+    maximumGoal: Double?
+) {
+    val progress = if (maximumGoal != null && maximumGoal > 0.0) {
+        (totalSpent / maximumGoal).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    val insight = buildGoalInsight(
+        totalSpent = totalSpent,
+        minimumGoal = minimumGoal,
+        maximumGoal = maximumGoal
+    )
+
+    AnalyticsCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = insight.icon,
+                contentDescription = null,
+                tint = insight.color,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = "Progress Tracking",
+                color = Color.White,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = insight.title,
+            color = insight.color,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(5.dp))
+
+        Text(
+            text = insight.message,
+            color = Color.White.copy(alpha = 0.78f),
+            fontSize = 12.sp,
+            lineHeight = 17.sp
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(9.dp),
+            color = insight.color,
+            trackColor = Color(0xFF17354A)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SummaryRow(
+            label = "Minimum Goal",
+            value = minimumGoal?.let {
+                "R ${String.format(Locale.getDefault(), "%.2f", it)}"
+            } ?: "Not set"
+        )
+
+        SummaryRow(
+            label = "Maximum Goal",
+            value = maximumGoal?.let {
+                "R ${String.format(Locale.getDefault(), "%.2f", it)}"
+            } ?: "Not set"
+        )
+
+        SummaryRow(
+            label = "Spent",
+            value = "R ${String.format(Locale.getDefault(), "%.2f", totalSpent)}"
+        )
+    }
+}
+
+private data class GoalInsight(
+    val title: String,
+    val message: String,
+    val icon: ImageVector,
+    val color: Color
+)
+
+private fun buildGoalInsight(
+    totalSpent: Double,
+    minimumGoal: Double?,
+    maximumGoal: Double?
+): GoalInsight {
+    return when {
+        minimumGoal == null || maximumGoal == null -> {
+            GoalInsight(
+                title = "Goal Not Set",
+                message = "Set a minimum and maximum budget goal for this month to track your progress.",
+                icon = Icons.Default.TrackChanges,
+                color = Color(0xFF65D6D0)
+            )
+        }
+
+        totalSpent < minimumGoal -> {
+            GoalInsight(
+                title = "Below Minimum Goal",
+                message = "You are below your minimum monthly spending goal. Check that all expenses for this period have been recorded.",
+                icon = Icons.Default.TrendingDown,
+                color = Color(0xFFA6F22E)
+            )
+        }
+
+        totalSpent in minimumGoal..maximumGoal -> {
+            GoalInsight(
+                title = "Within Goal Range",
+                message = "You are staying between your minimum and maximum goals. Your spending is currently on track.",
+                icon = Icons.Default.TrendingFlat,
+                color = Color(0xFF65D6D0)
+            )
+        }
+
+        else -> {
+            GoalInsight(
+                title = "Above Maximum Goal",
+                message = "You have gone above your maximum monthly spending goal. Review your category spending to see where you overspent.",
+                icon = Icons.Default.TrendingUp,
+                color = Color(0xFFE04F5F)
+            )
+        }
+    }
+}
+
+@Composable
 private fun SummaryRow(
     label: String,
     value: String
@@ -574,8 +735,6 @@ private fun GraphCard(
 
         Spacer(modifier = Modifier.height(7.dp))
 
-        // Small goal panel inside the graph card.
-        // The graph still shows goal indicators, but this panel guarantees goals are always visible.
         GoalRangePanel(
             minGoal = minGoal,
             maxGoal = maxGoal
@@ -777,7 +936,6 @@ private fun InteractiveCategoryBarChart(
                             return@detectTapGestures
                         }
 
-                        // These values must match the chart drawing padding below.
                         val leftPadding = 92f
                         val rightPadding = 30f
                         val topPadding = 44f
@@ -825,8 +983,6 @@ private fun InteractiveCategoryBarChart(
                             }
                         }
 
-                        // Tapping a real bar selects it.
-                        // Tapping empty graph space clears the selected bar.
                         onBarSelected(tappedBarIndex)
                     }
                 )
@@ -843,8 +999,6 @@ private fun InteractiveCategoryBarChart(
         val maxSpent = data.maxOfOrNull { it.totalSpent } ?: 0.0
         val maxGoalValue = maxOf(minGoal ?: 0.0, maxGoal ?: 0.0)
 
-        // The chart mainly scales according to spending.
-        // Goals only stretch the axis if they are close enough to the spending values.
         val shouldIncludeGoalsInAxis =
             maxGoalValue > 0.0 && maxGoalValue <= maxSpent * 2.5
 
@@ -887,7 +1041,6 @@ private fun InteractiveCategoryBarChart(
             isFakeBoldText = true
         }
 
-        // Draw y-axis labels and grid lines.
         repeat(6) { index ->
             val y = topPadding + (chartHeight / 5f) * index
             val value = maxValue - (axisStep * index)
@@ -999,9 +1152,6 @@ private fun InteractiveCategoryBarChart(
         val slotWidth = chartWidth / data.size
         val barWidth = slotWidth * 0.50f
 
-        // Selected bar interaction guide.
-        // When a bar is selected, a matching-colour guide line goes from the bar to the y-axis.
-        // A temporary amount label also appears on the y-axis, even if that value is not part of the normal axis labels.
         val selectedItem = data.getOrNull(selectedBarIndex)
 
         if (selectedItem != null) {
@@ -1015,7 +1165,6 @@ private fun InteractiveCategoryBarChart(
             val selectedBarLeft =
                 leftPadding + (slotWidth * selectedBarIndex) + ((slotWidth - barWidth) / 2f)
 
-            // Horizontal guide line from selected bar to the y-axis.
             drawLine(
                 color = selectedColor.copy(alpha = 0.95f),
                 start = Offset(leftPadding, selectedY),
@@ -1023,7 +1172,6 @@ private fun InteractiveCategoryBarChart(
                 strokeWidth = 4f
             )
 
-            // Dot on the y-axis to show the selected amount position.
             drawCircle(
                 color = selectedColor,
                 radius = 6f,
@@ -1037,7 +1185,6 @@ private fun InteractiveCategoryBarChart(
             val amountBadgeTop = (selectedY - amountBadgeHeight / 2f)
                 .coerceIn(topPadding, topPadding + chartHeight - amountBadgeHeight)
 
-            // Temporary y-axis amount badge.
             drawRoundRect(
                 color = selectedColor.copy(alpha = 0.95f),
                 topLeft = Offset(amountBadgeLeft, amountBadgeTop),
@@ -1068,15 +1215,11 @@ private fun InteractiveCategoryBarChart(
 
             val normalBarColor = getCategoryGraphColor(item.categoryName, index)
 
-            // Selected bar now keeps its category colour.
-            // The highlight is shown using a brighter border and guide line instead of changing to lime.
-            val barColorToUse = normalBarColor
-
             drawRoundRect(
                 brush = Brush.verticalGradient(
                     listOf(
-                        barColorToUse,
-                        barColorToUse.copy(alpha = 0.55f)
+                        normalBarColor,
+                        normalBarColor.copy(alpha = 0.55f)
                     )
                 ),
                 topLeft = Offset(left, top),
