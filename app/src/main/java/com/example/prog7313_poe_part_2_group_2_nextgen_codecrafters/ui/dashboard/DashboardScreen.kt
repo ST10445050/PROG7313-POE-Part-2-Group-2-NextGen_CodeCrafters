@@ -8,8 +8,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.LocalHospital
+import androidx.compose.material.icons.outlined.Receipt
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.ShoppingBasket
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,51 +27,60 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
+<<<<<<< Updated upstream
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.QuestionnaireAnswers
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.User
+=======
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.ProfileDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.QuestionnaireAnswersDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.QuestionnaireRepository
+>>>>>>> Stashed changes
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
+<<<<<<< Updated upstream
+=======
+import java.util.Locale
+>>>>>>> Stashed changes
 
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    userId: Int,
+    userId: String,
     expenseViewModel: ExpenseViewModel
 ) {
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
+    val profileRepository = remember { ProfileRepository() }
+    val questionnaireRepository = remember { QuestionnaireRepository() }
 
-    // Stores the logged-in user's details from RoomDB.
-    var user by remember { mutableStateOf<User?>(null) }
-
-    // Stores the user's questionnaire answers from RoomDB.
-    var answers by remember { mutableStateOf<QuestionnaireAnswers?>(null) }
-
-    // Controls whether the shared hamburger menu is visible.
+    var profile by remember { mutableStateOf<ProfileDto?>(null) }
+    var answers by remember { mutableStateOf<QuestionnaireAnswersDto?>(null) }
     var showMenu by remember { mutableStateOf(false) }
 
+<<<<<<< Updated upstream
     // Loads all expenses for the logged-in user.
     val expenses by expenseViewModel
         .getExpensesForUser(userId)
         .collectAsState(initial = emptyList())
 
     // Loads user details and questionnaire answers when the screen opens.
+=======
+>>>>>>> Stashed changes
     LaunchedEffect(userId) {
-        user = db.userDao().getUserById(userId)
-        answers = db.questionnaireDao().getAnswersByUserId(userId)
+        profile = profileRepository.getProfile(userId)
+        answers = questionnaireRepository.getQuestionnaireAnswers(userId)
     }
 
+<<<<<<< Updated upstream
     // Safely displays the user's name, or "User" if the database has no name.
     val userName = user?.name ?: "User"
 
@@ -73,33 +92,47 @@ fun DashboardScreen(
     val amountSpent = expenses.sumOf { it.amount }
 
     // Calculates the remaining amount from the monthly budget.
+=======
+    val userName = profile?.name ?: "User"
+
+    val monthlyBudget = answers?.monthlyIncome ?: 0.0
+    val savingsGoal = answers?.monthlySavingsGoal ?: 0.0
+
+    val amountSpent = 0.0
+>>>>>>> Stashed changes
     val remaining = monthlyBudget - amountSpent
 
-    // Calculates the percentage of the budget already used.
     val usedPercentage = if (monthlyBudget > 0) {
         ((amountSpent / monthlyBudget) * 100).toInt()
     } else {
         0
     }
 
-    // Calculates progress bar value from 0f to 1f.
     val progressValue = if (monthlyBudget > 0) {
         (amountSpent / monthlyBudget).toFloat().coerceIn(0f, 1f)
     } else {
         0f
     }
 
+<<<<<<< Updated upstream
     // Converts the stored comma-separated spending categories into a clean list.
     val categories = answers?.spendingCategories
+=======
+    val recentExpenses = emptyList<String>()
+
+    val selectedCategories = answers?.selectedCategories
+>>>>>>> Stashed changes
         ?.split(",")
         ?.map { it.trim() }
         ?.filter { it.isNotBlank() }
         ?: emptyList()
+<<<<<<< Updated upstream
 
     // Shows the latest 3 expenses on the dashboard.
     val recentExpenses = expenses.takeLast(3).reversed()
+=======
+>>>>>>> Stashed changes
 
-    // Displays a message based on the user's selected financial goal.
     val personalisedMessage = when (answers?.financialGoal) {
         "Save more money" -> "Your dashboard is focused on saving and reaching your monthly savings goal."
         "Reduce spending" -> "Your dashboard is focused on helping you control spending before adding expenses."
@@ -109,7 +142,6 @@ fun DashboardScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background image used across the app.
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -117,23 +149,18 @@ fun DashboardScreen(
             contentScale = ContentScale.Crop
         )
 
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Shared fixed top bar.
-            // Dashboard does not need a back button, only the menu icon.
+        Column(modifier = Modifier.fillMaxSize()) {
             SharedTopBar(
                 onMenuClick = { showMenu = true },
                 showBackButton = false
             )
 
-            // Main scrollable dashboard content.
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 18.dp)
-                    .padding(top = 22.dp, bottom = 96.dp)
+                    .padding(top = 22.dp, bottom = 110.dp)
             ) {
                 Text(
                     text = "Hello $userName 👋",
@@ -231,13 +258,18 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
+<<<<<<< Updated upstream
                     if (categories.isEmpty()) {
+=======
+                    if (selectedCategories.isEmpty()) {
+>>>>>>> Stashed changes
                         Text(
                             text = "No spending categories selected yet.",
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 16.sp
                         )
                     } else {
+<<<<<<< Updated upstream
                         categories.take(4).forEachIndexed { index, category ->
                             val categoryTotal = expenses
                                 .filter { it.categoryId == index + 1 }
@@ -265,6 +297,15 @@ fun DashboardScreen(
                                     Color(0xFFB075D6),
                                     Color(0xFFE85FA3)
                                 ).getOrElse(index) { FinTrackMint }
+=======
+                        selectedCategories.take(4).forEachIndexed { index, category ->
+                            SpendingRow(
+                                icon = getDashboardCategoryIcon(category),
+                                title = category,
+                                amount = "R0",
+                                progress = 0f,
+                                color = getDashboardCategoryColor(category, index)
+>>>>>>> Stashed changes
                             )
                         }
                     }
@@ -352,36 +393,11 @@ fun DashboardScreen(
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 16.sp
                         )
-                    } else {
-                        recentExpenses.forEach { expense ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = expense.description.ifBlank { "Expense" },
-                                    color = Color.White,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                Text(
-                                    text = "R${expense.amount.toInt()}",
-                                    color = FinTrackMint,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
                     }
                 }
             }
         }
 
-        // Shared bottom navigation bar.
         SharedBottomNav(
             navController = navController,
             userId = userId,
@@ -389,7 +405,6 @@ fun DashboardScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // Dark overlay and shared side menu.
         if (showMenu) {
             Box(
                 modifier = Modifier
@@ -409,6 +424,21 @@ fun DashboardScreen(
                         launchSingleTop = true
                     }
                 },
+<<<<<<< Updated upstream
+=======
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onHelpClick = {
+                    showMenu = false
+                    navController.navigate("help/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+>>>>>>> Stashed changes
                 onLogoutClick = {
                     showMenu = false
 

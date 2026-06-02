@@ -164,7 +164,7 @@ fun CategoryScreen(
         // Shared bottom navbar.
         SharedBottomNav(
             navController = navController,
-            userId = userId,
+            userId = userId.toString(),
             currentScreen = "categories",
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -189,6 +189,21 @@ fun CategoryScreen(
                         launchSingleTop = true
                     }
                 },
+<<<<<<< Updated upstream
+=======
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onHelpClick = {
+                    showMenu = false
+                    navController.navigate("help/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+>>>>>>> Stashed changes
                 onLogoutClick = {
                     showMenu = false
 

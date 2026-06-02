@@ -33,8 +33,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-
 /*
 ---------------------------------------------------------------
 MODULE: PROG7313
@@ -51,8 +49,6 @@ This application is a mobile budgeting system developed using
 Android Studio with Jetpack Compose and RoomDB for local data
 storage. It allows users to manage expenses, categories, and
 budget goals, while providing insights into monthly spending.
-
-
 
 ---------------------------------------------------------------
 REFERENCES:

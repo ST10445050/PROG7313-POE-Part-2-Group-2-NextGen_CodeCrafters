@@ -19,13 +19,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
+
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.AuthRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackLime
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackMint
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackNavy
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -37,10 +41,11 @@ fun NewPasswordScreen(navController: NavController, email: String) {
 
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val userDao = AppDatabase.getDatabase(context).userDao()
     val scope = rememberCoroutineScope()
+    val authRepository = remember { AuthRepository() }
 
     fun isValidPassword(password: String): Boolean {
         val passwordPattern = Regex(
@@ -74,8 +79,19 @@ fun NewPasswordScreen(navController: NavController, email: String) {
             )
 
             Row {
-                Text("Fin", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold)
-                Text("Track", color = FinTrackMint, fontSize = 36.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Fin",
+                    color = Color.White,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Track",
+                    color = FinTrackMint,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Text(
@@ -111,7 +127,11 @@ fun NewPasswordScreen(navController: NavController, email: String) {
 
                     when {
                         password.isBlank() || confirmPassword.isBlank() -> {
-                            Toast.makeText(context, "Please fill in both password fields", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Please fill in both password fields",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
 
                         !isValidPassword(password) -> {
@@ -123,28 +143,49 @@ fun NewPasswordScreen(navController: NavController, email: String) {
                         }
 
                         password != confirmPassword -> {
-                            Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Passwords do not match",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
 
                         else -> {
                             scope.launch {
-                                userDao.updatePassword(email, password)
+                                try {
+                                    isLoading = true
 
-                                Toast.makeText(
-                                    context,
-                                    "Password updated successfully. Please log in with your new password.",
-                                    Toast.LENGTH_LONG
-                                ).show()
+                                    authRepository.updateRecoveredPassword(password)
 
-                                delay(3000)
+                                    Toast.makeText(
+                                        context,
+                                        "Password updated successfully. Please log in with your new password.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
 
-                                navController.navigate("login") {
-                                    popUpTo("landing") { inclusive = false }
+                                    delay(2000)
+
+                                    navController.navigate("login") {
+                                        popUpTo("landing") {
+                                            inclusive = false
+                                        }
+                                        launchSingleTop = true
+                                    }
+
+                                } catch (e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        e.message ?: "Password update failed. Open the reset email link first.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } finally {
+                                    isLoading = false
                                 }
                             }
                         }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
@@ -155,7 +196,18 @@ fun NewPasswordScreen(navController: NavController, email: String) {
                     contentColor = FinTrackNavy
                 )
             ) {
-                Text("UPDATE PASSWORD", fontWeight = FontWeight.Bold)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = FinTrackNavy
+                    )
+                } else {
+                    Text(
+                        text = "UPDATE PASSWORD",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
@@ -173,7 +225,11 @@ private fun PasswordField(
         value = value,
         onValueChange = onValueChange,
         placeholder = {
-            Text(placeholder, color = Color.White, fontWeight = FontWeight.Medium)
+            Text(
+                text = placeholder,
+                color = Color.White,
+                fontWeight = FontWeight.Medium
+            )
         },
         textStyle = LocalTextStyle.current.copy(
             color = Color.White,
@@ -182,7 +238,11 @@ private fun PasswordField(
         ),
         singleLine = true,
         leadingIcon = {
-            Icon(Icons.Outlined.Lock, contentDescription = null, tint = Color.White)
+            Icon(
+                imageVector = Icons.Outlined.Lock,
+                contentDescription = null,
+                tint = Color.White
+            )
         },
         trailingIcon = {
             IconButton(onClick = onToggleVisibility) {

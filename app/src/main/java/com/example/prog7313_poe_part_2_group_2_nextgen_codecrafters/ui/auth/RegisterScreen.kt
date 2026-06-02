@@ -43,6 +43,7 @@ fun RegisterScreen(navController: NavController) {
 
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -175,6 +176,11 @@ fun RegisterScreen(navController: NavController) {
                         else -> {
                             scope.launch {
                                 try {
+<<<<<<< Updated upstream
+=======
+                                    isLoading = true
+
+>>>>>>> Stashed changes
                                     val newUserId = authRepository.registerUser(
                                         name = name,
                                         surname = surname,
@@ -196,17 +202,28 @@ fun RegisterScreen(navController: NavController) {
                                             inclusive = true
                                         }
                                     }
+<<<<<<< Updated upstream
+=======
+
+
+>>>>>>> Stashed changes
                                 } catch (e: Exception) {
                                     Toast.makeText(
                                         context,
                                         e.message ?: "Registration failed. Please try again.",
                                         Toast.LENGTH_LONG
                                     ).show()
+<<<<<<< Updated upstream
+=======
+                                } finally {
+                                    isLoading = false
+>>>>>>> Stashed changes
                                 }
                             }
                         }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp)
@@ -217,7 +234,15 @@ fun RegisterScreen(navController: NavController) {
                     contentColor = FinTrackNavy
                 )
             ) {
-                Text("REGISTER", fontWeight = FontWeight.Bold)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = FinTrackNavy
+                    )
+                } else {
+                    Text("REGISTER", fontWeight = FontWeight.Bold)
+                }
             }
 
             Text(

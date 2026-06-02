@@ -17,9 +17,14 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.E
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.budget.BudgetGoalScreen
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.reports.CategoryTotalsScreen
+<<<<<<< Updated upstream
 
+=======
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.graph.CategorySpendingGraphScreen
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.help.HelpScreen
+>>>>>>> Stashed changes
 @Composable
-fun AppNavGraph() {
+fun AppNavGraph(startDestination: String = "landing")  {
     val navController = rememberNavController()
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
@@ -34,7 +39,7 @@ fun AppNavGraph() {
 
     NavHost(
         navController = navController,
-        startDestination = "landing"
+        startDestination = startDestination
     ) {
         composable("landing") { LandingScreen(navController) }
         composable("login") { LoginScreen(navController) }
@@ -47,25 +52,25 @@ fun AppNavGraph() {
         }
 
         composable("question1/{userId}") {
-            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val userId = it.arguments?.getString("userId") ?: ""
             Question1Screen(navController, userId)
         }
 
         composable("question2/{userId}/{employmentStatus}") {
-            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val userId = it.arguments?.getString("userId") ?: ""
             val status = Uri.decode(it.arguments?.getString("employmentStatus") ?: "")
             Question2Screen(navController, userId, status)
         }
 
         composable("question3/{userId}/{employmentStatus}/{monthlyIncome}") {
-            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val userId = it.arguments?.getString("userId") ?: ""
             val status = Uri.decode(it.arguments?.getString("employmentStatus") ?: "")
             val income = it.arguments?.getString("monthlyIncome")?.toDoubleOrNull() ?: 0.0
             Question3Screen(navController, userId, status, income)
         }
 
         composable("question4/{userId}/{employmentStatus}/{monthlyIncome}/{categories}") {
-            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val userId = it.arguments?.getString("userId") ?: ""
             val status = Uri.decode(it.arguments?.getString("employmentStatus") ?: "")
             val income = it.arguments?.getString("monthlyIncome")?.toDoubleOrNull() ?: 0.0
             val categories = Uri.decode(it.arguments?.getString("categories") ?: "")
@@ -73,7 +78,7 @@ fun AppNavGraph() {
         }
 
         composable("question5/{userId}/{employmentStatus}/{monthlyIncome}/{categories}/{financialGoal}") {
-            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val userId = it.arguments?.getString("userId") ?: ""
             val status = Uri.decode(it.arguments?.getString("employmentStatus") ?: "")
             val income = it.arguments?.getString("monthlyIncome")?.toDoubleOrNull() ?: 0.0
             val categories = Uri.decode(it.arguments?.getString("categories") ?: "")
@@ -83,7 +88,8 @@ fun AppNavGraph() {
         }
 
         composable("dashboard/{userId}") {
-            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+            val userId = it.arguments?.getString("userId") ?: ""
+
             DashboardScreen(
                 navController = navController,
                 userId = userId,
@@ -118,6 +124,31 @@ fun AppNavGraph() {
             )
         }
 
+<<<<<<< Updated upstream
+=======
+        composable("analytics/{userId}") {
+            val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
+
+            CategorySpendingGraphScreen(
+                userId = userId,
+                expenseDao = db.expenseDao(),
+                budgetGoalDao = db.budgetGoalDao(),
+                navController = navController
+            )
+        }
+
+        composable("help/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments
+                ?.getString("userId")
+                ?.toIntOrNull() ?: 0
+
+            HelpScreen(
+                navController = navController,
+                userId = userId
+            )
+        }
+
+>>>>>>> Stashed changes
         composable("expense_list/{userId}") {
             val userId = it.arguments?.getString("userId")?.toIntOrNull() ?: 0
             ExpenseListScreen(userId, expenseViewModel, navController)

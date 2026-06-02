@@ -404,7 +404,7 @@ fun BudgetGoalScreen(
 
         SharedBottomNav(
             navController = navController,
-            userId = userId,
+            userId = userId.toString(),
             currentScreen = "settings",
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -424,6 +424,12 @@ fun BudgetGoalScreen(
                 userName = userName,
                 onBudgetGoalsClick = {
                     showMenu = false
+                },
+                onHelpClick = {
+                    showMenu = false
+                    navController.navigate("help/$userId") {
+                        launchSingleTop = true
+                    }
                 },
                 onLogoutClick = {
                     showMenu = false

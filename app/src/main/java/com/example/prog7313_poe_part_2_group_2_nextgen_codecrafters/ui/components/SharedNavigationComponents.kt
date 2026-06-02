@@ -5,7 +5,19 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+<<<<<<< Updated upstream
 import androidx.compose.material.icons.filled.*
+=======
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TrackChanges
+>>>>>>> Stashed changes
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Divider
@@ -77,7 +89,7 @@ fun SharedTopBar(
 @Composable
 fun SharedBottomNav(
     navController: NavController,
-    userId: Int,
+    userId: String,
     currentScreen: String,
     modifier: Modifier = Modifier
 ) {
@@ -146,6 +158,11 @@ fun SharedSideMenu(
     modifier: Modifier = Modifier,
     userName: String,
     onBudgetGoalsClick: () -> Unit,
+<<<<<<< Updated upstream
+=======
+    onAnalyticsClick: () -> Unit,
+    onHelpClick: () -> Unit = {},
+>>>>>>> Stashed changes
     onLogoutClick: () -> Unit
 ) {
     Column(
@@ -210,6 +227,15 @@ fun SharedSideMenu(
         Divider(color = Color.White.copy(alpha = 0.08f))
 
         // Logout item
+        SharedMenuItem(
+            icon = Icons.Default.Help,
+            title = "Help",
+            iconColor = Color(0xFF8EEBFF),
+            onClick = onHelpClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
         SharedMenuItem(
             icon = Icons.Default.PowerSettingsNew,
             title = "Logout",
