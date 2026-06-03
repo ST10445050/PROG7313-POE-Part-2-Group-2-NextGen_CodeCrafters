@@ -8,98 +8,120 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.LocalHospital
+import androidx.compose.material.icons.outlined.Receipt
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.ShoppingBasket
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.QuestionnaireAnswers
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.User
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.ProfileDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.QuestionnaireAnswersDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.QuestionnaireRepository
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense.ExpenseViewModel
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackLime
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackMint
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackTeal
+import java.util.Locale
 
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    userId: Int,
+    userId: String,
     expenseViewModel: ExpenseViewModel
 ) {
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
+    val profileRepository = remember { ProfileRepository() }
+    val questionnaireRepository = remember { QuestionnaireRepository() }
 
-    // Stores the logged-in user's details from RoomDB.
-    var user by remember { mutableStateOf<User?>(null) }
-
-    // Stores the user's questionnaire answers from RoomDB.
-    var answers by remember { mutableStateOf<QuestionnaireAnswers?>(null) }
-
-    // Controls whether the shared hamburger menu is visible.
+    var profile by remember { mutableStateOf<ProfileDto?>(null) }
+    var answers by remember { mutableStateOf<QuestionnaireAnswersDto?>(null) }
     var showMenu by remember { mutableStateOf(false) }
 
-    // Loads all expenses for the logged-in user.
-    val expenses by expenseViewModel
-        .getExpensesForUser(userId)
-        .collectAsState(initial = emptyList())
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentUserId by rememberUpdatedState(userId)
 
-    // Loads user details and questionnaire answers when the screen opens.
     LaunchedEffect(userId) {
-        user = db.userDao().getUserById(userId)
-        answers = db.questionnaireDao().getAnswersByUserId(userId)
+        profile = profileRepository.getProfile(userId)
+        answers = questionnaireRepository.getQuestionnaireAnswers(userId)
+        expenseViewModel.loadExpenses(userId)
     }
 
-    // Safely displays the user's name, or "User" if the database has no name.
-    val userName = user?.name ?: "User"
+    DisposableEffect(lifecycleOwner, userId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                expenseViewModel.loadExpenses(currentUserId)
+            }
+        }
 
-    // Pulls budget values from the questionnaire answers.
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val userName = profile?.name ?: "User"
+
     val monthlyBudget = answers?.monthlyIncome ?: 0.0
     val savingsGoal = answers?.monthlySavingsGoal ?: 0.0
 
-    // Calculates how much the user has spent.
-    val amountSpent = expenses.sumOf { it.amount }
+    val expenseList = expenseViewModel.expenses
 
-    // Calculates the remaining amount from the monthly budget.
+    val amountSpent = expenseList.sumOf { it.amount }
     val remaining = monthlyBudget - amountSpent
 
-    // Calculates the percentage of the budget already used.
     val usedPercentage = if (monthlyBudget > 0) {
         ((amountSpent / monthlyBudget) * 100).toInt()
     } else {
         0
     }
 
-    // Calculates progress bar value from 0f to 1f.
     val progressValue = if (monthlyBudget > 0) {
         (amountSpent / monthlyBudget).toFloat().coerceIn(0f, 1f)
     } else {
         0f
     }
 
-    // Converts the stored comma-separated spending categories into a clean list.
-    val categories = answers?.spendingCategories
-        ?.split(",")
-        ?.map { it.trim() }
-        ?.filter { it.isNotBlank() }
-        ?: emptyList()
+    val categoryTotals = expenseList
+        .groupBy { it.categoryName }
+        .mapValues { entry -> entry.value.sumOf { it.amount } }
+        .toList()
+        .sortedByDescending { it.second }
 
-    // Shows the latest 3 expenses on the dashboard.
-    val recentExpenses = expenses.takeLast(3).reversed()
+    val recentExpenses = expenseList.take(3)
 
-    // Displays a message based on the user's selected financial goal.
     val personalisedMessage = when (answers?.financialGoal) {
         "Save more money" -> "Your dashboard is focused on saving and reaching your monthly savings goal."
         "Reduce spending" -> "Your dashboard is focused on helping you control spending before adding expenses."
@@ -109,7 +131,6 @@ fun DashboardScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background image used across the app.
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -117,23 +138,18 @@ fun DashboardScreen(
             contentScale = ContentScale.Crop
         )
 
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Shared fixed top bar.
-            // Dashboard does not need a back button, only the menu icon.
+        Column(modifier = Modifier.fillMaxSize()) {
             SharedTopBar(
                 onMenuClick = { showMenu = true },
                 showBackButton = false
             )
 
-            // Main scrollable dashboard content.
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 18.dp)
-                    .padding(top = 22.dp, bottom = 96.dp)
+                    .padding(top = 22.dp, bottom = 110.dp)
             ) {
                 Text(
                     text = "Hello $userName 👋",
@@ -167,7 +183,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Text(
-                            text = "R${monthlyBudget.toInt()}",
+                            text = "R${String.format("%.0f", monthlyBudget)}",
                             color = Color.White,
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
@@ -204,15 +220,29 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(18.dp))
 
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        BudgetItem("Budget", "R${monthlyBudget.toInt()}", Modifier.weight(1f))
-                        BudgetItem("Spent", "R${amountSpent.toInt()}", Modifier.weight(1f))
-                        BudgetItem("Remaining", "R${remaining.toInt()}", Modifier.weight(1f))
+                        BudgetItem(
+                            label = "Budget",
+                            value = "R${String.format("%.0f", monthlyBudget)}",
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        BudgetItem(
+                            label = "Spent",
+                            value = "R${String.format("%.0f", amountSpent)}",
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        BudgetItem(
+                            label = "Remaining",
+                            value = "R${String.format("%.0f", remaining)}",
+                            modifier = Modifier.weight(1f)
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Savings Goal: R${savingsGoal.toInt()}",
+                        text = "Savings Goal: R${String.format("%.0f", savingsGoal)}",
                         color = FinTrackMint,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -231,40 +261,27 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    if (categories.isEmpty()) {
+                    if (categoryTotals.isEmpty()) {
                         Text(
-                            text = "No spending categories selected yet.",
+                            text = "No spending data yet. Add expenses to see your summary.",
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 16.sp
                         )
                     } else {
-                        categories.take(4).forEachIndexed { index, category ->
-                            val categoryTotal = expenses
-                                .filter { it.categoryId == index + 1 }
-                                .sumOf { it.amount }
+                        categoryTotals.take(4).forEachIndexed { index, item ->
+                            val categoryName = item.first
+                            val totalAmount = item.second
 
                             SpendingRow(
-                                icon = when (category.lowercase()) {
-                                    "groceries" -> Icons.Outlined.ShoppingBasket
-                                    "transport" -> Icons.Outlined.DirectionsCar
-                                    "subscriptions" -> Icons.Outlined.Receipt
-                                    "shopping" -> Icons.Outlined.ShoppingCart
-                                    "food", "eating out" -> Icons.Outlined.Restaurant
-                                    else -> Icons.Outlined.Category
-                                },
-                                title = category,
-                                amount = "R${categoryTotal.toInt()}",
-                                progress = if (monthlyBudget > 0) {
-                                    (categoryTotal / monthlyBudget).toFloat().coerceIn(0f, 1f)
+                                icon = getDashboardCategoryIcon(categoryName),
+                                title = categoryName,
+                                amount = "R${String.format("%.2f", totalAmount)}",
+                                progress = if (amountSpent > 0) {
+                                    (totalAmount / amountSpent).toFloat().coerceIn(0f, 1f)
                                 } else {
                                     0f
                                 },
-                                color = listOf(
-                                    FinTrackLime,
-                                    FinTrackMint,
-                                    Color(0xFFB075D6),
-                                    Color(0xFFE85FA3)
-                                ).getOrElse(index) { FinTrackMint }
+                                color = getDashboardCategoryColor(categoryName, index)
                             )
                         }
                     }
@@ -322,7 +339,9 @@ fun DashboardScreen(
                         }
 
                         QuickAction("▥", "View\nInsights", Modifier.weight(1f)) {
-                            // This can be linked to an insights screen later.
+                            navController.navigate("analytics/$userId") {
+                                launchSingleTop = true
+                            }
                         }
 
                         QuickAction("✪", "Budget\nGoals", Modifier.weight(1f)) {
@@ -354,34 +373,17 @@ fun DashboardScreen(
                         )
                     } else {
                         recentExpenses.forEach { expense ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = expense.description.ifBlank { "Expense" },
-                                    color = Color.White,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                Text(
-                                    text = "R${expense.amount.toInt()}",
-                                    color = FinTrackMint,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            RecentExpenseRow(
+                                description = expense.description,
+                                categoryName = expense.categoryName,
+                                amount = expense.amount
+                            )
                         }
                     }
                 }
             }
         }
 
-        // Shared bottom navigation bar.
         SharedBottomNav(
             navController = navController,
             userId = userId,
@@ -389,7 +391,6 @@ fun DashboardScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // Dark overlay and shared side menu.
         if (showMenu) {
             Box(
                 modifier = Modifier
@@ -406,6 +407,18 @@ fun DashboardScreen(
                 onBudgetGoalsClick = {
                     showMenu = false
                     navController.navigate("budget_goals/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onHelpClick = {
+                    showMenu = false
+                    navController.navigate("help/$userId") {
                         launchSingleTop = true
                     }
                 },
@@ -507,6 +520,45 @@ private fun SpendingRow(
 }
 
 @Composable
+private fun RecentExpenseRow(
+    description: String,
+    categoryName: String,
+    amount: Double
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 7.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = description.ifBlank { "Expense" },
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+
+            Text(
+                text = categoryName,
+                color = FinTrackMint,
+                fontSize = 13.sp,
+                maxLines = 1
+            )
+        }
+
+        Text(
+            text = "R${String.format("%.2f", amount)}",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
 private fun QuickAction(
     icon: String,
     label: String,
@@ -541,5 +593,76 @@ private fun QuickAction(
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+private fun getDashboardCategoryIcon(categoryName: String): ImageVector {
+    val name = categoryName.lowercase(Locale.getDefault())
+
+    return when {
+        name.contains("grocery") || name.contains("groceries") ->
+            Icons.Outlined.ShoppingBasket
+
+        name.contains("transport") ||
+                name.contains("uber") ||
+                name.contains("taxi") ||
+                name.contains("fuel") ->
+            Icons.Outlined.DirectionsCar
+
+        name.contains("food") ||
+                name.contains("restaurant") ||
+                name.contains("meal") ||
+                name.contains("eating") ->
+            Icons.Outlined.Restaurant
+
+        name.contains("rent") ||
+                name.contains("housing") ||
+                name.contains("home") ->
+            Icons.Outlined.Home
+
+        name.contains("subscription") ||
+                name.contains("bill") ||
+                name.contains("receipt") ->
+            Icons.Outlined.Receipt
+
+        name.contains("shopping") ||
+                name.contains("clothing") ||
+                name.contains("clothes") ->
+            Icons.Outlined.ShoppingCart
+
+        name.contains("health") ||
+                name.contains("medical") ->
+            Icons.Outlined.LocalHospital
+
+        name.contains("gym") ||
+                name.contains("fitness") ->
+            Icons.Outlined.FitnessCenter
+
+        else ->
+            Icons.Outlined.Category
+    }
+}
+
+private fun getDashboardCategoryColor(
+    categoryName: String,
+    index: Int
+): Color {
+    val name = categoryName.lowercase(Locale.getDefault())
+
+    return when {
+        name.contains("food") -> FinTrackMint
+        name.contains("transport") -> FinTrackLime
+        name.contains("grocery") || name.contains("groceries") -> Color(0xFFB075D6)
+        name.contains("rent") || name.contains("housing") -> Color(0xFFE85FA3)
+        name.contains("subscription") || name.contains("bill") -> Color(0xFFFFB547)
+        name.contains("gym") || name.contains("fitness") -> Color(0xFF4DA3FF)
+        else -> listOf(
+            FinTrackLime,
+            FinTrackMint,
+            Color(0xFFB075D6),
+            Color(0xFFE85FA3),
+            Color(0xFFFFB547),
+            Color(0xFF4DA3FF)
+        )[index % 6]
     }
 }

@@ -1,5 +1,6 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.categories
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,32 +29,36 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.CategoryDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
+import kotlinx.coroutines.launch
 
 @Composable
 fun CategoryScreen(
     navController: NavController,
-    userId: Int,
+    userId: String,
     viewModel: CategoryViewModel = viewModel()
 ) {
-    // Loads the saved categories from the CategoryViewModel.
-    val categories by viewModel.categories.collectAsState()
-
     val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
+    val scope = rememberCoroutineScope()
+    val profileRepository = remember { ProfileRepository() }
 
-    // Stores the logged-in user's name for the shared hamburger menu greeting.
     var userName by remember { mutableStateOf("User") }
-
-    // Controls whether the shared side menu is open or closed.
     var showMenu by remember { mutableStateOf(false) }
 
-    // Loads the real user name from RoomDB using the current userId.
     LaunchedEffect(userId) {
-        userName = db.userDao().getUserById(userId)?.name ?: "User"
+        viewModel.loadCategories(userId)
+        userName = profileRepository.getProfile(userId)?.name ?: "User"
+    }
+
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
     }
 
     Box(
@@ -60,7 +66,6 @@ fun CategoryScreen(
             .fillMaxSize()
             .background(Color(0xFF06121A))
     ) {
-        // Background image used behind the full screen.
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -74,8 +79,6 @@ fun CategoryScreen(
                 .fillMaxSize()
                 .padding(bottom = 78.dp)
         ) {
-            // Shared fixed top bar.
-            // Categories has a back button because it is reached from the dashboard/nav flow.
             SharedTopBar(
                 showBackButton = true,
                 onBackClick = {
@@ -109,7 +112,6 @@ fun CategoryScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Opens the category totals screen.
                 Button(
                     onClick = {
                         navController.navigate("category_totals/$userId")
@@ -145,23 +147,42 @@ fun CategoryScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Displays all saved categories.
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 12.dp)
-                ) {
-                    items(categories) { category ->
-                        CategoryCard(category.name)
+                if (viewModel.isLoading && viewModel.categories.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF38D6A5))
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 12.dp)
+                    ) {
+                        items(viewModel.categories) { category ->
+                            CategoryCard(
+                                category = category,
+                                onDeleteClick = {
+                                    val categoryId = category.categoryId
+                                    if (categoryId != null) {
+                                        viewModel.deleteCategory(userId, categoryId)
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
 
-                // Allows the user to add a new category at the bottom of the page.
-                AddCategoryBox(viewModel)
+                AddCategoryBox(
+                    viewModel = viewModel,
+                    userId = userId
+                )
             }
         }
 
-        // Shared bottom navbar.
         SharedBottomNav(
             navController = navController,
             userId = userId,
@@ -169,7 +190,6 @@ fun CategoryScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // Dark overlay and shared side menu.
         if (showMenu) {
             Box(
                 modifier = Modifier
@@ -189,9 +209,20 @@ fun CategoryScreen(
                         launchSingleTop = true
                     }
                 },
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onHelpClick = {
+                    showMenu = false
+                    navController.navigate("help/$userId") {
+                        launchSingleTop = true
+                    }
+                },
                 onLogoutClick = {
                     showMenu = false
-
                     navController.navigate("landing") {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
@@ -203,9 +234,11 @@ fun CategoryScreen(
 }
 
 @Composable
-private fun CategoryCard(categoryName: String) {
-    // Gets the emoji icon and background colour based on the category name.
-    val iconData = getCategoryIconData(categoryName)
+private fun CategoryCard(
+    category: CategoryDto,
+    onDeleteClick: () -> Unit
+) {
+    val iconData = getCategoryIconData(category.name)
 
     Row(
         modifier = Modifier
@@ -232,13 +265,21 @@ private fun CategoryCard(categoryName: String) {
         Spacer(modifier = Modifier.width(16.dp))
 
         Text(
-            text = categoryName,
+            text = category.name,
             color = Color.White,
             fontSize = 22.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f)
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+        IconButton(onClick = onDeleteClick) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete category",
+                tint = Color(0xFFE04F5F),
+                modifier = Modifier.size(26.dp)
+            )
+        }
 
         Icon(
             imageVector = Icons.Default.KeyboardArrowRight,
@@ -249,7 +290,6 @@ private fun CategoryCard(categoryName: String) {
     }
 }
 
-// Holds the selected emoji and background colour for a category.
 private data class CategoryIconData(
     val icon: String,
     val backgroundColor: Color
@@ -289,7 +329,10 @@ private fun getCategoryIconData(categoryName: String): CategoryIconData {
 }
 
 @Composable
-private fun AddCategoryBox(viewModel: CategoryViewModel) {
+private fun AddCategoryBox(
+    viewModel: CategoryViewModel,
+    userId: String
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -350,8 +393,9 @@ private fun AddCategoryBox(viewModel: CategoryViewModel) {
 
             Button(
                 onClick = {
-                    viewModel.saveCategory()
+                    viewModel.saveCategory(userId)
                 },
+                enabled = !viewModel.isLoading,
                 shape = RoundedCornerShape(9.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Transparent
@@ -372,7 +416,7 @@ private fun AddCategoryBox(viewModel: CategoryViewModel) {
                         .padding(horizontal = 22.dp, vertical = 9.dp)
                 ) {
                     Text(
-                        text = "SAVE",
+                        text = if (viewModel.isLoading) "..." else "SAVE",
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold

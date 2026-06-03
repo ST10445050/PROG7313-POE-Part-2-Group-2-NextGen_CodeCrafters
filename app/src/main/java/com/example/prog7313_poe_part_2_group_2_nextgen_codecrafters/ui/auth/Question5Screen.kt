@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -24,25 +25,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.QuestionnaireAnswers
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.QuestionnaireRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackLime
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackMint
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackNavy
 import kotlinx.coroutines.launch
 
 @Composable
 fun Question5Screen(
     navController: NavController,
-    userId: Int,
+    userId: String,
     employmentStatus: String,
     monthlyIncome: Double,
     categories: String,
     financialGoal: String
 ) {
     val context = LocalContext.current
-    val questionnaireDao = AppDatabase.getDatabase(context).questionnaireDao()
     val scope = rememberCoroutineScope()
+    val questionnaireRepository = remember { QuestionnaireRepository() }
 
     var savingsGoal by remember { mutableStateOf(5000f) }
+    var isLoading by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -146,33 +149,47 @@ fun Question5Screen(
             Button(
                 onClick = {
                     scope.launch {
-                        val answers = QuestionnaireAnswers(
-                            userId = userId,
-                            employmentStatus = employmentStatus,
-                            monthlyIncome = monthlyIncome,
-                            spendingCategories = categories,
-                            financialGoal = financialGoal,
-                            monthlySavingsGoal = savingsGoal.toDouble(),
-                            dashboardType = "personalized"
-                        )
+                        try {
+                            isLoading = true
 
-                        questionnaireDao.deleteAnswersByUserId(userId)
-                        questionnaireDao.insertAnswers(answers)
+                            questionnaireRepository.saveQuestionnaireAnswers(
+                                userId = userId,
+                                employmentStatus = employmentStatus,
+                                monthlyIncome = monthlyIncome,
+                                selectedCategories = categories,
+                                financialGoal = financialGoal,
+                                monthlySavingsGoal = savingsGoal.toDouble()
+                            )
 
-                        Toast.makeText(
-                            context,
-                            "Questionnaire completed successfully",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                            Toast.makeText(
+                                context,
+                                "Questionnaire completed successfully",
+                                Toast.LENGTH_SHORT
+                            ).show()
 
-                        Log.d(
-                            "Question5Screen",
-                            "Saved questionnaire answers for user ID: $userId"
-                        )
+                            Log.d(
+                                "Question5Screen",
+                                "Saved questionnaire answers for user ID: $userId"
+                            )
 
-                        navController.navigate("dashboard/$userId")
+                            navController.navigate("dashboard/$userId") {
+                                popUpTo("question1/$userId") {
+                                    inclusive = true
+                                }
+                            }
+
+                        } catch (e: Exception) {
+                            Toast.makeText(
+                                context,
+                                e.message ?: "Failed to save questionnaire answers",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } finally {
+                            isLoading = false
+                        }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp)
@@ -183,11 +200,19 @@ fun Question5Screen(
                     contentColor = FinTrackNavy
                 )
             ) {
-                Text(
-                    text = "NEXT",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = FinTrackNavy
+                    )
+                } else {
+                    Text(
+                        text = "NEXT",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(36.dp))

@@ -1,5 +1,6 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.expense
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,64 +34,67 @@ import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.ExpenseDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseListScreen(
-    userId: Int,
+    userId: String,
     viewModel: ExpenseViewModel,
     navController: NavController
 ) {
-    // Loads all expenses for the logged-in user.
-    val expenseList by viewModel.getExpensesForUser(userId)
-        .collectAsState(initial = emptyList())
-
-    // Tracks the selected filter chip.
     var selectedFilter by remember { mutableStateOf("All") }
 
-    // Stores the start and end dates used for filtering.
     var startDate by remember { mutableStateOf("2020-01-01") }
     var endDate by remember { mutableStateOf("2030-12-31") }
 
-    // Controls whether the custom date picker dialog is open.
     var showCustomDatePicker by remember { mutableStateOf(false) }
-
-    // Stores the selected receipt image path.
-    // When this value is not null, the full receipt preview dialog opens.
     var selectedReceiptImage by remember { mutableStateOf<String?>(null) }
 
-    // Loads expenses inside the selected date range.
-    val filteredExpenseList by viewModel.getExpensesForUserByDateRange(
-        userId = userId,
-        startDate = startDate,
-        endDate = endDate
-    ).collectAsState(initial = emptyList())
-
-    // If All is selected, show every expense. Otherwise, show the filtered list.
-    val displayList = if (selectedFilter == "All") expenseList else filteredExpenseList
-
-    // Controls the shared hamburger menu.
     var showMenu by remember { mutableStateOf(false) }
-
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
-
-    // Stores the logged-in user's name for the shared side menu.
     var userName by remember { mutableStateOf("User") }
 
-    // Loads the logged-in user's real name from RoomDB.
+    val context = LocalContext.current
+    val profileRepository = remember { ProfileRepository() }
+
     LaunchedEffect(userId) {
-        userName = db.userDao().getUserById(userId)?.name ?: "User"
+        userName = profileRepository.getProfile(userId)?.name ?: "User"
+        viewModel.loadExpenses(userId)
+    }
+
+    LaunchedEffect(startDate, endDate, selectedFilter) {
+        if (selectedFilter != "All") {
+            viewModel.loadExpensesByDateRange(
+                userId = userId,
+                startDate = startDate,
+                endDate = endDate
+            )
+        }
+    }
+
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
+    }
+
+    val displayList = if (selectedFilter == "All") {
+        viewModel.expenses
+    } else {
+        viewModel.filteredExpenses
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background image used behind the screen content.
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -103,7 +107,6 @@ fun ExpenseListScreen(
                 .fillMaxSize()
                 .padding(bottom = 78.dp)
         ) {
-            // Shared top bar used across the app.
             SharedTopBar(
                 showBackButton = true,
                 onBackClick = {
@@ -136,7 +139,6 @@ fun ExpenseListScreen(
                     modifier = Modifier.padding(top = 6.dp, bottom = 14.dp)
                 )
 
-                // Date filter section at the top of the Expense page.
                 ExpenseFilterSection(
                     selectedFilter = selectedFilter,
                     startDate = startDate,
@@ -169,6 +171,7 @@ fun ExpenseListScreen(
                                 selectedFilter = "All"
                                 startDate = "2020-01-01"
                                 endDate = "2030-12-31"
+                                viewModel.loadExpenses(userId)
                             }
                         }
                     }
@@ -176,8 +179,16 @@ fun ExpenseListScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Expense list area.
-                if (displayList.isEmpty()) {
+                if (viewModel.isLoading && displayList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF65D6D0))
+                    }
+                } else if (displayList.isEmpty()) {
                     EmptyExpenseCard(selectedFilter)
                 } else {
                     LazyColumn(
@@ -191,14 +202,11 @@ fun ExpenseListScreen(
                             }
 
                             ExpenseCard(
-                                title = expense.description.ifBlank { "Expense" },
+                                expense = expense,
                                 amount = "R ${String.format("%.2f", expense.amount)}",
                                 date = formattedDate,
                                 icon = getExpenseIconFromText(expense.description),
                                 iconBg = getExpenseIconColorFromText(expense.description),
-                                photoPath = expense.photoPath,
-
-                                // Opens the full receipt preview when the expense has an attached photo.
                                 onPhotoClick = {
                                     selectedReceiptImage = expense.photoPath
                                 }
@@ -207,9 +215,12 @@ fun ExpenseListScreen(
                     }
                 }
 
-                // Add Expense button.
                 Button(
-                    onClick = { navController.navigate("add_expense/$userId") },
+                    onClick = {
+                        navController.navigate("add_expense/$userId") {
+                            launchSingleTop = true
+                        }
+                    },
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .padding(bottom = 32.dp)
@@ -250,7 +261,6 @@ fun ExpenseListScreen(
             }
         }
 
-        // Shared bottom navigation bar used across the app.
         SharedBottomNav(
             navController = navController,
             userId = userId,
@@ -258,13 +268,14 @@ fun ExpenseListScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // Shared side menu overlay.
         if (showMenu) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.45f))
-                    .clickable { showMenu = false }
+                    .clickable {
+                        showMenu = false
+                    }
             )
 
             SharedSideMenu(
@@ -272,14 +283,24 @@ fun ExpenseListScreen(
                 userName = userName,
                 onBudgetGoalsClick = {
                     showMenu = false
-
                     navController.navigate("budget_goals/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onHelpClick = {
+                    showMenu = false
+                    navController.navigate("help/$userId") {
                         launchSingleTop = true
                     }
                 },
                 onLogoutClick = {
                     showMenu = false
-
                     navController.navigate("landing") {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
@@ -288,7 +309,6 @@ fun ExpenseListScreen(
             )
         }
 
-        // Custom start date and end date picker.
         if (showCustomDatePicker) {
             CustomDateRangeDialog(
                 startDate = startDate,
@@ -300,13 +320,18 @@ fun ExpenseListScreen(
                     startDate = selectedStartDate
                     endDate = selectedEndDate
                     selectedFilter = "Custom"
+
+                    viewModel.loadExpensesByDateRange(
+                        userId = userId,
+                        startDate = selectedStartDate,
+                        endDate = selectedEndDate
+                    )
+
                     showCustomDatePicker = false
                 }
             )
         }
 
-        // Full receipt image preview.
-        // This opens only when the user clicks on a receipt thumbnail.
         if (!selectedReceiptImage.isNullOrBlank()) {
             ReceiptImagePreviewDialog(
                 imagePath = selectedReceiptImage,
@@ -332,7 +357,6 @@ private fun ReceiptImagePreviewDialog(
                 .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(18.dp))
                 .padding(12.dp)
         ) {
-            // Full-size receipt image.
             AsyncImage(
                 model = imagePath,
                 contentDescription = "Full receipt image",
@@ -343,7 +367,6 @@ private fun ReceiptImagePreviewDialog(
                 contentScale = ContentScale.Fit
             )
 
-            // Close button in the top-right corner.
             IconButton(
                 onClick = onClose,
                 modifier = Modifier
@@ -359,7 +382,6 @@ private fun ReceiptImagePreviewDialog(
                 )
             }
 
-            // Small label at the bottom so the user knows what they are viewing.
             Text(
                 text = "Receipt Preview",
                 color = Color.White.copy(alpha = 0.85f),
@@ -462,12 +484,9 @@ private fun CustomDateRangeDialog(
     onDismiss: () -> Unit,
     onSearch: (String, String) -> Unit
 ) {
-    // DateRangePicker needs dates as milliseconds.
     val dateRangePickerState = rememberDateRangePickerState(
         initialSelectedStartDateMillis = parseDateToMillis(startDate),
         initialSelectedEndDateMillis = parseDateToMillis(endDate),
-
-        // Opens the picker as a proper calendar instead of text input.
         initialDisplayMode = DisplayMode.Picker
     )
 
@@ -550,12 +569,11 @@ private fun CustomDateRangeDialog(
 
 @Composable
 private fun ExpenseCard(
-    title: String,
+    expense: ExpenseDto,
     amount: String,
     date: String,
     icon: ImageVector,
     iconBg: Color,
-    photoPath: String?,
     onPhotoClick: () -> Unit
 ) {
     Row(
@@ -583,20 +601,29 @@ private fun ExpenseCard(
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f),
-            maxLines = 2
-        )
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = expense.description.ifBlank { "Expense" },
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+
+            Text(
+                text = expense.categoryName,
+                color = Color(0xFF65D6D0),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+        }
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        if (!photoPath.isNullOrBlank()) {
-            // Clickable receipt thumbnail.
-            // Only records with a photo attached will open the full preview.
+        if (!expense.photoPath.isNullOrBlank()) {
             Box(
                 modifier = Modifier
                     .size(50.dp)
@@ -605,13 +632,12 @@ private fun ExpenseCard(
                     .clickable { onPhotoClick() }
             ) {
                 AsyncImage(
-                    model = photoPath,
+                    model = expense.photoPath,
                     contentDescription = "Receipt photo",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
 
-                // Small visibility icon to show the user the image can be viewed.
                 Icon(
                     imageVector = Icons.Default.Visibility,
                     contentDescription = null,
@@ -624,7 +650,6 @@ private fun ExpenseCard(
                 )
             }
         } else {
-            // Empty placeholder shown when no photo was attached.
             Box(
                 modifier = Modifier
                     .size(50.dp)

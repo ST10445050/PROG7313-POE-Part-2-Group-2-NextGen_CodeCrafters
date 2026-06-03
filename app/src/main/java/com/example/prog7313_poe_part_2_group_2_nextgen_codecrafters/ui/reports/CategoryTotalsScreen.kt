@@ -19,101 +19,124 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.dao.ExpenseDao
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ExpenseRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
 @Composable
 fun CategoryTotalsScreen(
-    userId: Int,
-    expenseDao: ExpenseDao,
+    userId: String,
     navController: NavController
 ) {
-    // Loads all expenses with category names so totals update live.
-    val allExpenses by expenseDao.getExpensesWithCategoryForUser(userId)
-        .collectAsState(initial = emptyList())
+    val profileRepository = remember { ProfileRepository() }
+    val expenseRepository = remember { ExpenseRepository() }
+    val scope = rememberCoroutineScope()
 
-    // Tracks the selected date filter.
     var selectedFilter by remember { mutableStateOf("All") }
-
-    // Stores custom start and end date text.
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
 
-    // Controls the shared hamburger side menu.
+    var categoryTotals by remember { mutableStateOf<List<Pair<String, Double>>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var feedbackMessage by remember { mutableStateOf("") }
+
     var showMenu by remember { mutableStateOf(false) }
-
-    val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
-
-    // Stores the logged-in user's name for the shared side menu.
     var userName by remember { mutableStateOf("User") }
 
-    // Loads the real user name from RoomDB.
+    fun loadCategoryTotals(
+        filter: String,
+        customStartDate: String = startDate,
+        customEndDate: String = endDate
+    ) {
+        scope.launch {
+            try {
+                isLoading = true
+                feedbackMessage = ""
+
+                val expenses = when (filter) {
+                    "Today" -> {
+                        val today = getTodayDate()
+                        expenseRepository.getExpensesForUserByDateRange(
+                            userId = userId,
+                            startDate = today,
+                            endDate = today
+                        )
+                    }
+
+                    "This Week" -> {
+                        val weekStart = getCurrentWeekSunday()
+                        val weekEnd = getCurrentWeekSaturday()
+
+                        expenseRepository.getExpensesForUserByDateRange(
+                            userId = userId,
+                            startDate = weekStart,
+                            endDate = weekEnd
+                        )
+                    }
+
+                    "This Month" -> {
+                        val monthStart = getCurrentMonthStartDate()
+                        val monthEnd = getCurrentMonthEndDate()
+
+                        expenseRepository.getExpensesForUserByDateRange(
+                            userId = userId,
+                            startDate = monthStart,
+                            endDate = monthEnd
+                        )
+                    }
+
+                    "Custom" -> {
+                        if (customStartDate.isBlank() || customEndDate.isBlank()) {
+                            feedbackMessage = "Please enter both a start date and end date."
+                            emptyList()
+                        } else {
+                            expenseRepository.getExpensesForUserByDateRange(
+                                userId = userId,
+                                startDate = customStartDate,
+                                endDate = customEndDate
+                            )
+                        }
+                    }
+
+                    else -> {
+                        expenseRepository.getExpensesForUser(userId)
+                    }
+                }
+
+                categoryTotals = expenses
+                    .groupBy { it.categoryName }
+                    .map { (categoryName, expensesForCategory) ->
+                        categoryName to expensesForCategory.sumOf { it.amount }
+                    }
+                    .sortedBy { it.first }
+
+            } catch (e: Exception) {
+                feedbackMessage = e.message ?: "Could not load category totals."
+                categoryTotals = emptyList()
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
     LaunchedEffect(userId) {
-        userName = db.userDao().getUserById(userId)?.name ?: "User"
+        userName = profileRepository.getProfile(userId)?.name ?: "User"
+        loadCategoryTotals("All")
     }
-
-    // Stores today's date at midnight to make comparisons accurate.
-    val today = remember { startOfDay(Calendar.getInstance()) }
-
-    // Filters expenses based on the selected date option.
-    val filteredExpenses = allExpenses.filter { expense ->
-        val expenseDate = parseExpenseDate(expense.date)
-
-        when (selectedFilter) {
-            "Today" -> {
-                expenseDate != null && isSameDay(expenseDate, today)
-            }
-
-            "This Week" -> {
-                val startOfWeek = calendarDaysAgo(6)
-                expenseDate != null &&
-                        !expenseDate.before(startOfWeek.time) &&
-                        !expenseDate.after(today.time)
-            }
-
-            "This Month" -> {
-                expenseDate != null && isSameMonth(expenseDate, today)
-            }
-
-            "Custom" -> {
-                val customStart = parseExpenseDate(startDate)
-                val customEnd = parseExpenseDate(endDate)
-
-                expenseDate != null &&
-                        customStart != null &&
-                        customEnd != null &&
-                        !expenseDate.before(customStart) &&
-                        !expenseDate.after(customEnd)
-            }
-
-            else -> true
-        }
-    }
-
-    // Groups expenses by category name and calculates the total amount per category.
-    val categoryTotals = filteredExpenses
-        .groupBy { it.categoryName }
-        .map { (categoryName, expenses) ->
-            categoryName to expenses.sumOf { it.amount }
-        }
-        .sortedBy { it.first }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background image used across the app.
         Image(
             painter = painterResource(id = R.drawable.fintrack_background),
             contentDescription = null,
@@ -126,7 +149,6 @@ fun CategoryTotalsScreen(
                 .fillMaxSize()
                 .padding(bottom = 78.dp)
         ) {
-            // Shared fixed top bar.
             SharedTopBar(
                 showBackButton = true,
                 onBackClick = {
@@ -159,7 +181,6 @@ fun CategoryTotalsScreen(
                     modifier = Modifier.padding(top = 6.dp, bottom = 18.dp)
                 )
 
-                // Quick date filters.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -168,20 +189,50 @@ fun CategoryTotalsScreen(
                 ) {
                     FilterButton("All", selectedFilter) {
                         selectedFilter = "All"
+                        loadCategoryTotals("All")
                     }
 
                     FilterButton("Today", selectedFilter) {
                         selectedFilter = "Today"
+                        startDate = getTodayDate()
+                        endDate = getTodayDate()
+                        loadCategoryTotals("Today")
                     }
 
                     FilterButton("This Week", selectedFilter) {
                         selectedFilter = "This Week"
+                        startDate = getCurrentWeekSunday()
+                        endDate = getCurrentWeekSaturday()
+                        loadCategoryTotals("This Week")
                     }
 
                     FilterButton("This Month", selectedFilter) {
                         selectedFilter = "This Month"
+                        startDate = getCurrentMonthStartDate()
+                        endDate = getCurrentMonthEndDate()
+                        loadCategoryTotals("This Month")
                     }
                 }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Text(
+                    text = "Selected Range",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = when (selectedFilter) {
+                        "All" -> "Showing all expenses"
+                        else -> "Showing $startDate to $endDate"
+                    },
+                    color = Color.White.copy(alpha = 0.75f),
+                    fontSize = 14.sp
+                )
 
                 Spacer(modifier = Modifier.height(18.dp))
 
@@ -194,12 +245,11 @@ fun CategoryTotalsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Custom start date input.
                 OutlinedTextField(
                     value = startDate,
                     onValueChange = { startDate = it },
                     placeholder = {
-                        Text("Start Date e.g. 2026-04-29")
+                        Text("Start Date e.g. 2026-06-01")
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = fieldColors(),
@@ -209,12 +259,11 @@ fun CategoryTotalsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Custom end date input.
                 OutlinedTextField(
                     value = endDate,
                     onValueChange = { endDate = it },
                     placeholder = {
-                        Text("End Date e.g. 2026-04-29")
+                        Text("End Date e.g. 2026-06-30")
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = fieldColors(),
@@ -226,12 +275,35 @@ fun CategoryTotalsScreen(
 
                 FilterButton("Custom", selectedFilter) {
                     selectedFilter = "Custom"
+                    loadCategoryTotals(
+                        filter = "Custom",
+                        customStartDate = startDate,
+                        customEndDate = endDate
+                    )
+                }
+
+                if (feedbackMessage.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = feedbackMessage,
+                        color = Color.White.copy(alpha = 0.80f),
+                        fontSize = 13.sp
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Shows an empty message when no totals match the selected date range.
-                if (categoryTotals.isEmpty()) {
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF65D6D0))
+                    }
+                } else if (categoryTotals.isEmpty()) {
                     EmptyTotalsCard()
                 } else {
                     LazyColumn(
@@ -247,7 +319,6 @@ fun CategoryTotalsScreen(
             }
         }
 
-        // Shared bottom navbar.
         SharedBottomNav(
             navController = navController,
             userId = userId,
@@ -255,7 +326,6 @@ fun CategoryTotalsScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        // Dark overlay and shared side menu.
         if (showMenu) {
             Box(
                 modifier = Modifier
@@ -272,6 +342,18 @@ fun CategoryTotalsScreen(
                 onBudgetGoalsClick = {
                     showMenu = false
                     navController.navigate("budget_goals/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onHelpClick = {
+                    showMenu = false
+                    navController.navigate("help/$userId") {
                         launchSingleTop = true
                     }
                 },
@@ -410,56 +492,44 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedContainerColor = Color.Transparent
 )
 
-private fun startOfDay(calendar: Calendar): Calendar {
-    return calendar.apply {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
+private fun getTodayDate(): String {
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return formatter.format(Calendar.getInstance().time)
 }
 
-private fun calendarDaysAgo(daysAgo: Int): Calendar {
-    return startOfDay(Calendar.getInstance()).apply {
-        add(Calendar.DAY_OF_YEAR, -daysAgo)
-    }
+private fun getCurrentWeekSunday(): String {
+    val calendar = Calendar.getInstance()
+
+    calendar.firstDayOfWeek = Calendar.SUNDAY
+    calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
+
+    return formatCalendarDate(calendar)
 }
 
-private fun isSameDay(date: java.util.Date, calendar: Calendar): Boolean {
-    val other = Calendar.getInstance().apply {
-        time = date
-    }
+private fun getCurrentWeekSaturday(): String {
+    val calendar = Calendar.getInstance()
 
-    return other.get(Calendar.YEAR) == calendar.get(Calendar.YEAR) &&
-            other.get(Calendar.DAY_OF_YEAR) == calendar.get(Calendar.DAY_OF_YEAR)
+    calendar.firstDayOfWeek = Calendar.SUNDAY
+    calendar.set(Calendar.DAY_OF_WEEK, Calendar.SATURDAY)
+
+    return formatCalendarDate(calendar)
 }
 
-private fun isSameMonth(date: java.util.Date, calendar: Calendar): Boolean {
-    val other = Calendar.getInstance().apply {
-        time = date
-    }
+private fun getCurrentMonthStartDate(): String {
+    val calendar = Calendar.getInstance()
+    calendar.set(Calendar.DAY_OF_MONTH, 1)
 
-    return other.get(Calendar.YEAR) == calendar.get(Calendar.YEAR) &&
-            other.get(Calendar.MONTH) == calendar.get(Calendar.MONTH)
+    return formatCalendarDate(calendar)
 }
 
-private fun parseExpenseDate(dateText: String): java.util.Date? {
-    val formats = listOf(
-        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
-        SimpleDateFormat("d/M/yyyy", Locale.getDefault()),
-        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    )
+private fun getCurrentMonthEndDate(): String {
+    val calendar = Calendar.getInstance()
+    calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
 
-    return formats.firstNotNullOfOrNull { format ->
-        try {
-            format.isLenient = false
-            startOfDay(
-                Calendar.getInstance().apply {
-                    time = format.parse(dateText)!!
-                }
-            ).time
-        } catch (e: Exception) {
-            null
-        }
-    }
+    return formatCalendarDate(calendar)
+}
+
+private fun formatCalendarDate(calendar: Calendar): String {
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return formatter.format(calendar.time)
 }
