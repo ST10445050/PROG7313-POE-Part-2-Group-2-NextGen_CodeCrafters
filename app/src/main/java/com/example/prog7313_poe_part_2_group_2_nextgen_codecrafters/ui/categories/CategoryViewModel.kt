@@ -1,101 +1,151 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.categories
 
-import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.Category
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.CategoryDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.CategoryRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.utils.AppLogger
 import kotlinx.coroutines.launch
 
-class CategoryViewModel(application: Application) : AndroidViewModel(application) {
+class CategoryViewModel : ViewModel() {
 
-    private val categoryDao = AppDatabase.getDatabase(application).categoryDao()
+    private val categoryRepository = CategoryRepository()
+    private val tag = "CategoryViewModel"
 
-    // Loads all categories from RoomDB.
-    // This includes the 3 default categories and any custom categories added by the user.
-    val categories = categoryDao.getAllCategories()
-        .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            emptyList()
-        )
-
-    var showAddCategoryBox by mutableStateOf(true)
+    var categories by mutableStateOf<List<CategoryDto>>(emptyList())
         private set
 
     var categoryName by mutableStateOf("")
         private set
 
-    init {
-        // Adds the default categories only if they do not already exist.
-        seedDefaultCategories()
-    }
+    var isLoading by mutableStateOf(false)
+        private set
 
-    private fun seedDefaultCategories() {
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * Loads all categories for the logged-in user.
+     * Default categories are handled inside CategoryRepository if the user has none.
+     */
+    fun loadCategories(userId: String) {
+        AppLogger.debug(tag, "User requested category load.")
+
         viewModelScope.launch {
-            val defaultCategories = listOf(
-                "Food",
-                "Transport",
-                "Groceries"
-            )
+            try {
+                isLoading = true
+                errorMessage = null
 
-            defaultCategories.forEach { defaultName ->
+                categories = categoryRepository.getCategoriesForUser(userId)
 
+                AppLogger.info(
+                    tag,
+                    "Categories loaded successfully. Count: ${categories.size}"
+                )
 
-                val existingCategory = categoryDao.getCategoryByName(defaultName)
+            } catch (e: Exception) {
+                AppLogger.error(tag, "Category load failed.", e)
+                errorMessage = e.message ?: "Could not load categories"
 
-                if (existingCategory == null) {
-                    categoryDao.insertCategory(
-                        Category(name = defaultName)
-                    )
-                }
+            } finally {
+                isLoading = false
             }
         }
     }
 
-    fun onAddCategoryClick() {
-        showAddCategoryBox = true
-    }
-
+    /**
+     * Updates the local category input state as the user types.
+     * This is not logged to avoid spamming Logcat on every key press.
+     */
     fun onCategoryNameChange(newName: String) {
         categoryName = newName
     }
 
-    fun cancelAddCategory() {
-        categoryName = ""
-        showAddCategoryBox = true
-    }
+    /**
+     * Saves a new category after validating that the field is not empty.
+     * Validation failures are logged once when the user attempts to save.
+     */
+    fun saveCategory(userId: String) {
+        AppLogger.info(tag, "User started saving category.")
 
-    fun saveCategory() {
         val cleanName = categoryName.trim()
 
-        if (cleanName.isNotEmpty()) {
-            viewModelScope.launch {
+        if (cleanName.isEmpty()) {
+            AppLogger.warning(tag, "Category save validation failed: category name is empty.")
+            errorMessage = "Please enter a category name"
+            return
+        }
 
-                // Prevents users from manually adding duplicate categories.
-                // Example: if Food already exists, food or FOOD will not be inserted again.
-                val existingCategory = categoryDao.getCategoryByName(cleanName)
+        viewModelScope.launch {
+            try {
+                isLoading = true
+                errorMessage = null
 
-                if (existingCategory == null) {
-                    categoryDao.insertCategory(
-                        Category(name = cleanName)
-                    )
-                }
+                categoryRepository.addCategory(
+                    userId = userId,
+                    name = cleanName
+                )
 
+                // Clear the input after saving so the user can add another category easily.
                 categoryName = ""
-                showAddCategoryBox = true
+
+                // Refresh the list so the UI immediately shows the newly saved category.
+                categories = categoryRepository.getCategoriesForUser(userId)
+
+                AppLogger.info(
+                    tag,
+                    "Category saved successfully and category list refreshed. Count: ${categories.size}"
+                )
+
+            } catch (e: Exception) {
+                AppLogger.error(tag, "Category save failed.", e)
+                errorMessage = e.message ?: "Could not save category"
+
+            } finally {
+                isLoading = false
             }
         }
     }
 
-    fun deleteCategory(categoryId: Int) {
+    /**
+     * Deletes a category and reloads the list afterwards.
+     * This keeps the UI state aligned with the Supabase database.
+     */
+    fun deleteCategory(userId: String, categoryId: String) {
+        AppLogger.info(tag, "User started deleting category.")
+
         viewModelScope.launch {
-            categoryDao.deleteCategory(categoryId)
+            try {
+                isLoading = true
+                errorMessage = null
+
+                categoryRepository.deleteCategory(categoryId)
+
+                categories = categoryRepository.getCategoriesForUser(userId)
+
+                AppLogger.info(
+                    tag,
+                    "Category deleted successfully and category list refreshed. Count: ${categories.size}"
+                )
+
+            } catch (e: Exception) {
+                AppLogger.error(tag, "Category delete failed.", e)
+                errorMessage = e.message ?: "Could not delete category"
+
+            } finally {
+                isLoading = false
+            }
         }
+    }
+
+    /**
+     * Clears the current UI error message after it has been displayed.
+     */
+    fun clearError() {
+        AppLogger.debug(tag, "Category error message cleared.")
+        errorMessage = null
     }
 }

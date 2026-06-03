@@ -5,7 +5,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,13 +19,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
+
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.AuthRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackLime
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackMint
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackNavy
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackWhite
 import kotlinx.coroutines.launch
 
 @Composable
@@ -31,10 +39,11 @@ fun LoginScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val userDao = AppDatabase.getDatabase(context).userDao()
     val scope = rememberCoroutineScope()
+    val authRepository = remember { AuthRepository() }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -53,7 +62,6 @@ fun LoginScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // 🔥 BIGGER LOGO
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(300.dp)
@@ -69,12 +77,22 @@ fun LoginScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(10.dp))
 
             Row {
-                Text("Fin", color = FinTrackWhite, fontSize = 36.sp, fontWeight = FontWeight.Bold)
-                Text("Track", color = FinTrackMint, fontSize = 36.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Fin",
+                    color = FinTrackWhite,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Track",
+                    color = FinTrackMint,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Text(
-                "Welcome back",
+                text = "Welcome back",
                 color = FinTrackWhite,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Medium
@@ -82,7 +100,6 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // ✅ USERNAME
             LoginTextField(
                 value = username,
                 onValueChange = { username = it },
@@ -90,7 +107,6 @@ fun LoginScreen(navController: NavController) {
                 leadingIcon = { Icon(Icons.Outlined.Person, null) }
             )
 
-            // ✅ PASSWORD
             LoginTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -119,19 +135,46 @@ fun LoginScreen(navController: NavController) {
             Button(
                 onClick = {
                     if (username.isBlank() || password.isBlank()) {
-                        Toast.makeText(context, "Enter username & password", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Enter username and password",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } else {
                         scope.launch {
-                            val user = userDao.loginUser(username, password)
-                            if (user != null) {
-                                Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                                navController.navigate("dashboard/${user.id}")
-                            } else {
-                                Toast.makeText(context, "Invalid login", Toast.LENGTH_SHORT).show()
+                            try {
+                                isLoading = true
+
+                                val userId = authRepository.loginUserWithUsername(
+                                    username = username,
+                                    password = password
+                                )
+
+                                Toast.makeText(
+                                    context,
+                                    "Login successful",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                navController.navigate("dashboard/$userId") {
+                                    popUpTo("login") {
+                                        inclusive = true
+                                    }
+                                }
+
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    e.message ?: "Invalid username or password",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } finally {
+                                isLoading = false
                             }
                         }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
@@ -142,7 +185,15 @@ fun LoginScreen(navController: NavController) {
                     contentColor = FinTrackNavy
                 )
             ) {
-                Text("LOGIN", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = FinTrackNavy
+                    )
+                } else {
+                    Text("LOGIN", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -153,6 +204,7 @@ fun LoginScreen(navController: NavController) {
         }
     }
 }
+
 @Composable
 private fun LoginTextField(
     value: String,

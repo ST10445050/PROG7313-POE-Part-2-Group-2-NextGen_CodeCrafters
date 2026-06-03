@@ -27,7 +27,7 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
 @Composable
 fun Question2Screen(
     navController: NavController,
-    userId: Int,
+    userId: String,
     employmentStatus: String
 ) {
     val context = LocalContext.current

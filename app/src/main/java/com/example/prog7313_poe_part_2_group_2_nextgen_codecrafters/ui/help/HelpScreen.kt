@@ -1,114 +1,269 @@
 package com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.help
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.remoteModels.HelpFaqDto
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.HelpRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.ProfileRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedBottomNav
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedSideMenu
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.components.SharedTopBar
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackMint
 
 @Composable
-fun HelpScreen() {
+fun HelpScreen(
+    navController: NavController,
+    userId: String
+) {
+    val profileRepository = remember { ProfileRepository() }
+    val helpRepository = remember { HelpRepository() }
 
-    val faqs = listOf(
-        "What is FinTrack?" to
-                "FinTrack is a budgeting and expense tracking application that helps users manage finances and monitor spending habits.",
+    var userName by remember { mutableStateOf("User") }
+    var showMenu by remember { mutableStateOf(false) }
 
-        "How do I add a new expense?" to
-                "Navigate to the Expenses section and click Add Expense. Enter the amount, category, date and description before saving.",
+    var faqs by remember { mutableStateOf<List<HelpFaqDto>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
-        "Can I upload a receipt for my expenses?" to
-                "Yes. When adding an expense, select Upload Receipt and choose an image file from your device.",
+    LaunchedEffect(userId) {
+        try {
+            isLoading = true
+            errorMessage = ""
 
-        "How do I set my monthly budget?" to
-                "Go to the Budget section and enter your desired monthly spending limit.",
+            userName = profileRepository.getProfile(userId)?.name ?: "User"
+            faqs = helpRepository.getHelpFaqs()
 
-        "How are achievements and badges earned?" to
-                "Achievements are awarded when users meet financial goals and consistently track expenses.",
+        } catch (e: Exception) {
+            errorMessage = e.message ?: "Could not load help information."
+        } finally {
+            isLoading = false
+        }
+    }
 
-        "Can I edit my account details?" to
-                "Yes. Open Settings and select Edit Profile to update your information.",
-
-        "What should I do if I forget my password?" to
-                "Use the Forgot Password option on the login screen and follow the instructions sent to your email."
-    )
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
+            .background(Color(0xFF06121A))
     ) {
-
-        Text(
-            text = "Help & Support",
-            style = MaterialTheme.typography.headlineMedium
+        Image(
+            painter = painterResource(id = R.drawable.fintrack_background),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alpha = 0.45f
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 78.dp)
+        ) {
+            SharedTopBar(
+                showBackButton = true,
+                onBackClick = {
+                    navController.navigate("dashboard/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onMenuClick = {
+                    showMenu = true
+                }
+            )
 
-        Text(
-            text = "Find answers to common questions about FinTrack."
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 18.dp)
+                    .padding(top = 20.dp, bottom = 22.dp)
+            ) {
+                Text(
+                    text = "Help & Support",
+                    color = Color.White,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Find answers to common questions about using FinTrack.",
+                    color = Color(0xFFB7C3D5),
+                    fontSize = 15.sp,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
+                )
+
+                Text(
+                    text = "Frequently Asked Questions",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                when {
+                    isLoading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = FinTrackMint)
+                        }
+                    }
+
+                    errorMessage.isNotBlank() -> {
+                        Text(
+                            text = errorMessage,
+                            color = Color.White.copy(alpha = 0.80f),
+                            fontSize = 15.sp
+                        )
+                    }
+
+                    faqs.isEmpty() -> {
+                        Text(
+                            text = "No help information is available yet.",
+                            color = Color.White.copy(alpha = 0.80f),
+                            fontSize = 15.sp
+                        )
+                    }
+
+                    else -> {
+                        faqs.forEach { faq ->
+                            FAQItem(
+                                question = faq.question,
+                                answer = faq.answer
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        SharedBottomNav(
+            navController = navController,
+            userId = userId,
+            currentScreen = "help",
+            modifier = Modifier.align(Alignment.BottomCenter)
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        if (showMenu) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable {
+                        showMenu = false
+                    }
+            )
 
-        faqs.forEach { faq ->
-            FAQItem(
-                question = faq.first,
-                answer = faq.second
+            SharedSideMenu(
+                modifier = Modifier.align(Alignment.TopEnd),
+                userName = userName,
+                onBudgetGoalsClick = {
+                    showMenu = false
+                    navController.navigate("budget_goals/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onAnalyticsClick = {
+                    showMenu = false
+                    navController.navigate("analytics/$userId") {
+                        launchSingleTop = true
+                    }
+                },
+                onHelpClick = {
+                    showMenu = false
+                },
+                onLogoutClick = {
+                    showMenu = false
+                    navController.navigate("landing") {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
     }
 }
 
 @Composable
-fun FAQItem(
+private fun FAQItem(
     question: String,
     answer: String
 ) {
-    var expanded by remember {
-        mutableStateOf(false)
-    }
+    var expanded by remember { mutableStateOf(false) }
 
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
+            .shadow(8.dp, RoundedCornerShape(14.dp))
+            .background(Color(0xFF101B2D).copy(alpha = 0.92f), RoundedCornerShape(14.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+            .clickable {
+                expanded = !expanded
+            }
+            .padding(15.dp)
     ) {
-
-        Column(
-            modifier = Modifier.padding(12.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = question,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        expanded = !expanded
-                    },
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = FinTrackMint,
+                modifier = Modifier.size(28.dp)
+            )
+        }
 
-                Text(
-                    text = question,
-                    style = MaterialTheme.typography.titleMedium
-                )
+        if (expanded) {
+            Spacer(modifier = Modifier.height(10.dp))
 
-                Text(
-                    text = if (expanded) "−" else "+",
-                    style = MaterialTheme.typography.titleLarge
-                )
-            }
+            Divider(color = Color.White.copy(alpha = 0.08f))
 
-            if (expanded) {
+            Spacer(modifier = Modifier.height(10.dp))
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(answer)
-            }
+            Text(
+                text = answer,
+                color = Color.White.copy(alpha = 0.78f),
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
         }
     }
 }

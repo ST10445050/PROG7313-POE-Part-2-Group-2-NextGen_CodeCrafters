@@ -20,16 +20,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
+
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.auth.Question1Screen
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.database.AppDatabase
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.data.entities.User
-import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.repository.AuthRepository
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackLime
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackMint
+import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.FinTrackNavy
 import kotlinx.coroutines.launch
 
 @Composable
@@ -45,10 +47,11 @@ fun RegisterScreen(navController: NavController) {
 
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val userDao = AppDatabase.getDatabase(context).userDao()
     val scope = rememberCoroutineScope()
+    val authRepository = remember { AuthRepository() }
 
     fun isValidPassword(password: String): Boolean {
         val pattern = Regex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#\$%^&+=!]).{8,}$")
@@ -79,8 +82,19 @@ fun RegisterScreen(navController: NavController) {
             )
 
             Row {
-                Text("Fin", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold)
-                Text("Track", color = FinTrackMint, fontSize = 36.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Fin",
+                    color = Color.White,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Track",
+                    color = FinTrackMint,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Text(
@@ -133,11 +147,19 @@ fun RegisterScreen(navController: NavController) {
                         name.isBlank() || surname.isBlank() || email.isBlank() ||
                                 gender.isBlank() || phone.isBlank() ||
                                 username.isBlank() || password.isBlank() || confirmPassword.isBlank() -> {
-                            Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Please fill in all fields",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
 
-                        !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
-                            Toast.makeText(context, "Email must contain @ and be valid", Toast.LENGTH_LONG).show()
+                        !Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() -> {
+                            Toast.makeText(
+                                context,
+                                "Email must contain @ and be valid",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
 
                         !isValidPassword(password) -> {
@@ -149,32 +171,54 @@ fun RegisterScreen(navController: NavController) {
                         }
 
                         password != confirmPassword -> {
-                            Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Passwords do not match",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
 
                         else -> {
                             scope.launch {
+                                try {
+                                    isLoading = true
 
-                                val newUserId = userDao.insertUser(
-                                    User(
-                                        name = name,
-                                        surname = surname,
-                                        email = email,
+                                    val newUserId = authRepository.registerUser(
+                                        name = name.trim(),
+                                        surname = surname.trim(),
+                                        email = email.trim(),
                                         gender = gender,
-                                        phone = phone,
-                                        username = username,
+                                        phone = phone.trim(),
+                                        username = username.trim(),
                                         password = password
                                     )
-                                )
 
-                                Toast.makeText(context, "Registered successfully", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Registered successfully",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
 
-                                navController.navigate("question1/$newUserId")
+                                    navController.navigate("question1/$newUserId") {
+                                        popUpTo("register") {
+                                            inclusive = true
+                                        }
+                                    }
+
+                                } catch (e: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        e.message ?: "Registration failed. Please try again.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } finally {
+                                    isLoading = false
+                                }
                             }
                         }
-
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp)
@@ -185,7 +229,15 @@ fun RegisterScreen(navController: NavController) {
                     contentColor = FinTrackNavy
                 )
             ) {
-                Text("REGISTER", fontWeight = FontWeight.Bold)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = FinTrackNavy
+                    )
+                } else {
+                    Text("REGISTER", fontWeight = FontWeight.Bold)
+                }
             }
 
             Text(
@@ -230,7 +282,11 @@ fun GenderDropdown(
                     modifier = Modifier.width(38.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.Person, contentDescription = null, tint = Color.White)
+                    Icon(
+                        imageVector = Icons.Outlined.Person,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
                 }
             },
             trailingIcon = {
@@ -312,7 +368,11 @@ fun RegisterField(
                 modifier = Modifier.width(38.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = Color.White)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White
+                )
             }
         },
         trailingIcon = if (isPassword) {
@@ -328,10 +388,13 @@ fun RegisterField(
                     )
                 }
             }
-        } else null,
+        } else {
+            null
+        },
         visualTransformation = if (isPassword && !passwordVisible)
             PasswordVisualTransformation()
-        else VisualTransformation.None,
+        else
+            VisualTransformation.None,
         modifier = Modifier
             .fillMaxWidth()
             .height(64.dp)

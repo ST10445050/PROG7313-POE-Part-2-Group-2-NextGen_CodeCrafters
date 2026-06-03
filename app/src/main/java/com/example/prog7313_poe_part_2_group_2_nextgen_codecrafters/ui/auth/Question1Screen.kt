@@ -26,7 +26,7 @@ import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.R
 import com.example.prog7313_poe_part_2_group_2_nextgen_codecrafters.ui.theme.*
 
 @Composable
-fun Question1Screen(navController: NavController, userId: Int) {
+fun Question1Screen(navController: NavController, userId: String) {
 
     val context = LocalContext.current
     var selectedOption by remember { mutableStateOf("") }

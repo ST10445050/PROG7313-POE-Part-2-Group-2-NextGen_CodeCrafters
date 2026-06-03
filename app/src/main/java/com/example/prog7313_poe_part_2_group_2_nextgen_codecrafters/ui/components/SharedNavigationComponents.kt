@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Menu
@@ -91,7 +92,7 @@ fun SharedTopBar(
 @Composable
 fun SharedBottomNav(
     navController: NavController,
-    userId: Int,
+    userId: String,
     currentScreen: String,
     modifier: Modifier = Modifier
 ) {
@@ -187,6 +188,7 @@ fun SharedSideMenu(
     userName: String,
     onBudgetGoalsClick: () -> Unit,
     onAnalyticsClick: () -> Unit,
+    onHelpClick: () -> Unit = {},
     onLogoutClick: () -> Unit
 ) {
     Column(
@@ -252,6 +254,15 @@ fun SharedSideMenu(
             title = "Analytics",
             iconColor = Color(0xFF65D6D0),
             onClick = onAnalyticsClick
+        )
+
+        Divider(color = Color.White.copy(alpha = 0.08f))
+
+        SharedMenuItem(
+            icon = Icons.Default.Help,
+            title = "Help",
+            iconColor = Color(0xFF8EEBFF),
+            onClick = onHelpClick
         )
 
         Divider(color = Color.White.copy(alpha = 0.08f))
