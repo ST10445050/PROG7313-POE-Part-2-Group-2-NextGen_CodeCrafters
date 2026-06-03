@@ -117,9 +117,7 @@ https://github.com/ST10445050/PROG7313-POE-Part-2-Group-2-NextGen_CodeCrafters
 
 ## 🎥 Demonstration Video
 
-```text
-PASTE DEMONSTRATION VIDEO LINK HERE
-```
+YouTube Link: https://youtu.be/dNCKD0-6jz0
 
 ---
 
