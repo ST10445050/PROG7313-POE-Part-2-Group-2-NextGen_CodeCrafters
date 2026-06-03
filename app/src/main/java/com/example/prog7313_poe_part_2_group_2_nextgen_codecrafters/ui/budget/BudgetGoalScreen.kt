@@ -454,12 +454,6 @@ fun BudgetGoalScreen(
                         launchSingleTop = true
                     }
                 },
-                onSettingsClick = {
-                    showMenu = false
-                    navController.navigate("settings/$userId") {
-                        launchSingleTop = true
-                    }
-                },
                 onHelpClick = {
                     showMenu = false
                     navController.navigate("help/$userId") {
