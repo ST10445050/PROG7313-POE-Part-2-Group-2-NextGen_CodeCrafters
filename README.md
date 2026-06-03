@@ -278,39 +278,6 @@ The repository layer handles communication with Supabase. Repositories are used 
 
 Supabase is used as the backend service for authentication, database tables, and image storage.
 
----
-
-## ☁️ Cloud Implementation
-
-FinTrack uses Supabase as the cloud backend.
-
-### Supabase Auth
-
-Supabase Auth is used for:
-
-* User registration
-* User login
-* User logout
-* Password reset email functionality
-
-### Supabase Database
-
-The app stores data in Supabase tables, including:
-
-* `profiles`
-* `questionnaire_answers`
-* `categories`
-* `expenses`
-* `budget_goals`
-* `help_faqs`
-
-### Supabase Storage
-
-Supabase Storage is used to store receipt images uploaded by users. When a receipt is uploaded, the image is saved in the storage bucket, and the image URL is stored in the `expenses` table.
-
-### Row Level Security
-
-Supabase Row Level Security policies are used to ensure users can only access and manage their own personal data.
 
 ---
 
@@ -355,53 +322,6 @@ Stores Help & Support content displayed in the app.
 * GitHub
 * GitHub Actions
 
----
-
-## 🔄 GitHub Actions
-
-GitHub Actions is used to automate the build and testing workflow. The workflow checks whether the project can compile successfully and runs automated checks when code is pushed to GitHub.
-
-The pipeline includes:
-
-* Checking out the project code
-* Setting up the required JDK
-* Running unit test/build tasks
-* Running lint checks
-* Building the debug APK
-* Uploading reports and APK artifacts
-
-This helps ensure that new code pushed to the repository does not break the project.
-
----
-
-## 🧪 Testing Explanation
-
-Testing was completed by running the app on an emulator and checking each major feature manually.
-
-The following features were tested:
-
-* User registration
-* User login
-* Password reset
-* Questionnaire completion
-* Questionnaire skip option
-* Personalised dashboard loading
-* Generic dashboard loading
-* Category creation
-* Default category seeding
-* Expense creation
-* Required field validation
-* Optional expense fields
-* Receipt upload to Supabase Storage
-* Budget goal creation and updating
-* Analytics date filters
-* Interactive graph display
-* Progress tracking
-* Category totals
-* Help screen loading from Supabase
-* Logout navigation
-
-GitHub Actions was also used to check whether the app builds correctly after merging changes into the main branch.
 
 ---
 
