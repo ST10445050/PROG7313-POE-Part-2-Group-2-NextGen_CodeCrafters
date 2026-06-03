@@ -13,14 +13,99 @@
 The application was developed using **Android Studio**, **Kotlin**, and **Jetpack Compose**, with **Supabase** used as the cloud backend for authentication, database storage, and receipt image storage.
 
 ---
+## 📄 Comprehensive Project Report
 
-## 🎯 Purpose of the Application
+### Purpose of the App
 
-The purpose of FinTrack is to provide users with a simple, structured, and user-friendly way to manage their monthly spending. Users can record expenses, create categories, set minimum and maximum monthly budget goals, upload optional receipt images, and monitor their spending behaviour through visual progress tracking and analytics.
+FinTrack was developed as a mobile budgeting application for **PROG7313 POE Part 3**. The purpose of the app is to help users manage their personal finances by allowing them to record expenses, organise spending into categories, set monthly budget goals, and monitor their spending behaviour through visual summaries and analytics.
 
-FinTrack supports better financial decision-making by showing users how much they have spent, which categories they spend the most on, and whether they are staying within their budget goal range.
+The app supports users in making better financial decisions by showing them where their money is being spent and whether they are staying within their selected minimum and maximum monthly budget goals. FinTrack also provides a personalised dashboard experience through a budgeting questionnaire, allowing users to receive dashboard content that is more relevant to their financial habits.
 
 ---
+
+### Design Considerations
+
+The design of FinTrack focused on creating a clear, user-friendly, and visually consistent mobile experience. The interface was developed using **Jetpack Compose**, allowing the team to build modern screens with reusable components and responsive layouts.
+
+The app uses a consistent colour theme, clear headings, icons, buttons, cards, and navigation components to make the system easy to understand. The bottom navigation bar gives users quick access to the main sections of the app, while the hamburger menu provides access to additional features such as Budget Goals, Analytics, Help, and Logout.
+
+User experience was also considered through validation and feedback. For example, when adding an expense, required fields such as amount, date, and category display user-friendly error messages if left empty. Optional fields such as start time, end time, description, and receipt image do not prevent the user from saving an expense.
+
+The Analytics screen was designed to provide a visual representation of spending behaviour. The graph allows users to view spending by category, filter by date range, zoom into the graph, and compare spending against budget goals. The progress tracking feature was designed to make it easier for users to visually understand whether they are below, within, or above their budget goal range.
+
+---
+
+### Cloud Implementation Considerations
+
+FinTrack uses **Supabase** as the cloud backend. Supabase was implemented to replace local-only storage and allow user data to be stored securely in the cloud. This supports authentication, user-specific data, database storage, and receipt image uploads.
+
+The following Supabase services were used:
+
+* **Supabase Auth** for registration, login, logout, and password reset.
+* **Supabase Database** for storing profiles, questionnaire answers, categories, expenses, budget goals, and help information.
+* **Supabase Storage** for storing uploaded receipt images.
+* **Row Level Security policies** to ensure users can only access their own data.
+
+Using Supabase improved the app by allowing data to persist online instead of being stored only on one device. This also made it easier to manage dynamic content such as Help & Support information from the database.
+
+---
+
+### GitHub Usage
+
+GitHub was used for version control and team collaboration throughout the project. Each team member worked on separate branches for their allocated features. This allowed features to be developed independently before being merged into the main project branch.
+
+The team used commits to track progress and document changes made to the project. Branches were merged after testing, and merge conflicts were resolved when different members worked on overlapping files. This helped the team manage development in a structured way and maintain a clear history of project changes.
+
+The use of GitHub supported collaboration by allowing the team to:
+
+* Work on features separately.
+* Track code changes through commits.
+* Merge completed features into shared branches.
+* Resolve conflicts between different feature implementations.
+* Maintain a final `main` branch for the completed application.
+
+---
+
+### GitHub Actions Usage
+
+GitHub Actions was used to automate the build and checking process for the app. The workflow helps confirm whether the application can compile successfully after code is pushed or merged.
+
+The GitHub Actions workflow includes steps such as:
+
+* Checking out the project code.
+* Setting up the required Java Development Kit.
+* Running build or test tasks.
+* Running lint checks.
+* Building the debug APK.
+* Uploading reports and APK artifacts where applicable.
+
+GitHub Actions is important because it helps identify compile errors and project issues early. If a merge introduces a problem, the workflow fails and shows where the error occurred. This improves project quality by ensuring the team can check whether the app still builds correctly after changes are added.
+
+---
+
+### Testing Considerations
+
+The app was tested manually using an emulator and physical device. Testing focused on confirming that the main features worked correctly and that data was saved and loaded from Supabase as expected.
+
+The following areas were tested:
+
+* User registration and login.
+* Password reset functionality.
+* Questionnaire completion and skip option.
+* Personalised and generic dashboard behaviour.
+* Category creation and default category seeding.
+* Expense creation with required and optional fields.
+* Receipt image upload to Supabase Storage.
+* Budget goal saving and updating.
+* Analytics filters for Today, This Week, This Month, All, and Custom.
+* Graph display and progress tracking.
+* Help & Support screen loading from Supabase.
+* Logout and navigation flow.
+
+Testing helped confirm that the app works as intended and that the main POE Part 3 requirements were met.
+
+---
+
 
 ## 🔗 GitHub Repository
 
