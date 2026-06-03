@@ -453,12 +453,7 @@ fun BudgetGoalScreen(
                     navController.navigate("analytics/$userId") {
                         launchSingleTop = true
                     }
-                },
-                onAnalyticsClick = {
-                    showMenu = false
-                    navController.navigate("analytics/$userId") {
-                        launchSingleTop = true
-                    }
+
                 },
                 onHelpClick = {
                     showMenu = false

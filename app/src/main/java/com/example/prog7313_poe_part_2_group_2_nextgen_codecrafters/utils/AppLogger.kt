@@ -6,7 +6,7 @@ object AppLogger {
 
     private const val APP_TAG = "FinTrackApp"
 
-    // Set to false later if you want to reduce debug/info logs.
+
     private const val ENABLE_DEBUG_LOGS = true
 
     fun debug(tag: String, message: String) {
