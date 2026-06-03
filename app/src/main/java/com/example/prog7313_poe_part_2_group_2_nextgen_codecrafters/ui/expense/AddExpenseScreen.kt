@@ -66,6 +66,10 @@ fun AddExpenseScreen(
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
 
+    var amountError by remember { mutableStateOf("") }
+    var categoryError by remember { mutableStateOf("") }
+    var dateError by remember { mutableStateOf("") }
+
     var showMenu by remember { mutableStateOf(false) }
     var userName by remember { mutableStateOf("User") }
     var expanded by remember { mutableStateOf(false) }
@@ -149,22 +153,30 @@ fun AddExpenseScreen(
                 )
 
                 InputCard {
-                    FieldLabel("Amount")
+                    FieldLabel("Amount *")
 
                     StyledTextField(
                         value = amount,
-                        onValueChange = { amount = it },
+                        onValueChange = {
+                            amount = it
+                            amountError = ""
+                        },
                         placeholder = "Enter amount",
-                        keyboardType = KeyboardType.Number
+                        keyboardType = KeyboardType.Number,
+                        errorMessage = amountError
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    FieldLabel("Category")
+                    FieldLabel("Category *")
 
                     ExposedDropdownMenuBox(
                         expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
+                        onExpandedChange = {
+                            if (categoryViewModel.categories.isNotEmpty()) {
+                                expanded = !expanded
+                            }
+                        }
                     ) {
                         OutlinedTextField(
                             value = selectedCategoryName,
@@ -190,9 +202,10 @@ fun AddExpenseScreen(
                                     tint = Color(0xFF65D6D0)
                                 )
                             },
-                            colors = fieldColors(),
+                            colors = fieldColors(categoryError.isNotBlank()),
                             shape = RoundedCornerShape(10.dp),
-                            enabled = categoryViewModel.categories.isNotEmpty()
+                            enabled = categoryViewModel.categories.isNotEmpty(),
+                            isError = categoryError.isNotBlank()
                         )
 
                         ExposedDropdownMenu(
@@ -205,6 +218,7 @@ fun AddExpenseScreen(
                                     onClick = {
                                         selectedCategoryName = category.name
                                         selectedCategoryId = category.categoryId
+                                        categoryError = ""
                                         expanded = false
                                     }
                                 )
@@ -213,33 +227,35 @@ fun AddExpenseScreen(
                     }
 
                     if (categoryViewModel.categories.isEmpty()) {
-                        Text(
-                            text = "Create categories first before adding an expense.",
-                            color = Color(0xFFB7C3D5),
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(top = 6.dp)
-                        )
+                        ErrorText("Please create a category before adding an expense.")
+                    } else if (categoryError.isNotBlank()) {
+                        ErrorText(categoryError)
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    FieldLabel("Date")
+                    FieldLabel("Date *")
 
                     ReadOnlyField(
                         value = date,
                         placeholder = "Select date",
                         icon = Icons.Default.DateRange,
-                        onClick = { showDateDialog = true }
+                        errorMessage = dateError,
+                        onClick = {
+                            dateError = ""
+                            showDateDialog = true
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    FieldLabel("Start Time")
+                    FieldLabel("Start Time (Optional)")
 
                     ReadOnlyField(
                         value = startTime,
                         placeholder = "Select start time",
                         icon = Icons.Default.AccessTime,
+                        errorMessage = "",
                         onClick = {
                             TimePickerDialog(
                                 context,
@@ -255,12 +271,13 @@ fun AddExpenseScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    FieldLabel("End Time")
+                    FieldLabel("End Time (Optional)")
 
                     ReadOnlyField(
                         value = endTime,
                         placeholder = "Select end time",
                         icon = Icons.Default.AccessTime,
+                        errorMessage = "",
                         onClick = {
                             TimePickerDialog(
                                 context,
@@ -276,12 +293,13 @@ fun AddExpenseScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    FieldLabel("Description")
+                    FieldLabel("Description (Optional)")
 
                     StyledTextField(
                         value = description,
                         onValueChange = { description = it },
-                        placeholder = "Add a short description"
+                        placeholder = "Add a short description",
+                        errorMessage = ""
                     )
                 }
 
@@ -330,56 +348,53 @@ fun AddExpenseScreen(
 
                 Button(
                     onClick = {
+                        amountError = ""
+                        categoryError = ""
+                        dateError = ""
+
                         val parsedAmount = amount.toDoubleOrNull()
+                        var hasError = false
 
-                        when {
-                            parsedAmount == null -> {
-                                Toast.makeText(context, "Please enter a valid amount", Toast.LENGTH_SHORT).show()
-                            }
+                        if (amount.isBlank()) {
+                            amountError = "Please enter the expense amount."
+                            hasError = true
+                        } else if (parsedAmount == null || parsedAmount <= 0.0) {
+                            amountError = "Please enter a valid amount greater than 0."
+                            hasError = true
+                        }
 
-                            selectedCategoryId == null || selectedCategoryName.isBlank() -> {
-                                Toast.makeText(context, "Please select a category", Toast.LENGTH_SHORT).show()
-                            }
+                        if (selectedCategoryId == null || selectedCategoryName.isBlank()) {
+                            categoryError = "Please select a category for this expense."
+                            hasError = true
+                        }
 
-                            date.isBlank() -> {
-                                Toast.makeText(context, "Please select a date", Toast.LENGTH_SHORT).show()
-                            }
+                        if (date.isBlank()) {
+                            dateError = "Please select the expense date."
+                            hasError = true
+                        }
 
-                            startTime.isBlank() -> {
-                                Toast.makeText(context, "Please select a start time", Toast.LENGTH_SHORT).show()
-                            }
+                        if (!hasError && parsedAmount != null) {
+                            viewModel.addExpense(
+                                context = context,
+                                userId = userId,
+                                categoryId = selectedCategoryId,
+                                categoryName = selectedCategoryName,
+                                date = date,
+                                startTime = startTime,
+                                endTime = endTime,
+                                description = description.trim(),
+                                amount = parsedAmount,
+                                imageUri = imageUri,
+                                onSuccess = {
+                                    Toast.makeText(
+                                        context,
+                                        "Expense saved successfully",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
 
-                            endTime.isBlank() -> {
-                                Toast.makeText(context, "Please select an end time", Toast.LENGTH_SHORT).show()
-                            }
-
-                            description.isBlank() -> {
-                                Toast.makeText(context, "Please enter a description", Toast.LENGTH_SHORT).show()
-                            }
-
-                            else -> {
-                                viewModel.addExpense(
-                                    context = context,
-                                    userId = userId,
-                                    categoryId = selectedCategoryId,
-                                    categoryName = selectedCategoryName,
-                                    date = date,
-                                    startTime = startTime,
-                                    endTime = endTime,
-                                    description = description.trim(),
-                                    amount = parsedAmount,
-                                    imageUri = imageUri,
-                                    onSuccess = {
-                                        Toast.makeText(
-                                            context,
-                                            "Expense saved successfully",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-
-                                        onSaveSuccess()
-                                    }
-                                )
-                            }
+                                    onSaveSuccess()
+                                }
+                            )
                         }
                     },
                     enabled = !viewModel.isLoading,
@@ -487,6 +502,8 @@ fun AddExpenseScreen(
                                 cal.get(Calendar.MONTH) + 1,
                                 cal.get(Calendar.DAY_OF_MONTH)
                             )
+
+                            dateError = ""
                         }
 
                         showDateDialog = false
@@ -529,7 +546,8 @@ private fun StyledTextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    errorMessage: String
 ) {
     OutlinedTextField(
         value = value,
@@ -543,9 +561,14 @@ private fun StyledTextField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        colors = fieldColors(),
-        shape = RoundedCornerShape(10.dp)
+        colors = fieldColors(errorMessage.isNotBlank()),
+        shape = RoundedCornerShape(10.dp),
+        isError = errorMessage.isNotBlank()
     )
+
+    if (errorMessage.isNotBlank()) {
+        ErrorText(errorMessage)
+    }
 }
 
 @Composable
@@ -553,6 +576,7 @@ private fun ReadOnlyField(
     value: String,
     placeholder: String,
     icon: ImageVector,
+    errorMessage: String,
     onClick: () -> Unit
 ) {
     OutlinedTextField(
@@ -577,17 +601,35 @@ private fun ReadOnlyField(
                 )
             }
         },
-        colors = fieldColors(),
-        shape = RoundedCornerShape(10.dp)
+        colors = fieldColors(errorMessage.isNotBlank()),
+        shape = RoundedCornerShape(10.dp),
+        isError = errorMessage.isNotBlank()
+    )
+
+    if (errorMessage.isNotBlank()) {
+        ErrorText(errorMessage)
+    }
+}
+
+@Composable
+private fun ErrorText(message: String) {
+    Text(
+        text = message,
+        color = Color(0xFFFF6B6B),
+        fontSize = 13.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(top = 6.dp)
     )
 }
 
 @Composable
-private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+private fun fieldColors(
+    isError: Boolean = false
+) = OutlinedTextFieldDefaults.colors(
     focusedTextColor = Color.White,
     unfocusedTextColor = Color.White,
-    focusedBorderColor = Color(0xFF65D6D0),
-    unfocusedBorderColor = Color(0xFF1AA3A8),
+    focusedBorderColor = if (isError) Color(0xFFFF6B6B) else Color(0xFF65D6D0),
+    unfocusedBorderColor = if (isError) Color(0xFFFF6B6B) else Color(0xFF1AA3A8),
     cursorColor = Color(0xFF65D6D0),
     focusedContainerColor = Color.Transparent,
     unfocusedContainerColor = Color.Transparent
