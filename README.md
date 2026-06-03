@@ -109,9 +109,7 @@ Testing helped confirm that the app works as intended and that the main POE Part
 
 ## 🔗 GitHub Repository
 
-```text
-https://github.com/ST10445050/PROG7313-POE-Part-2-Group-2-NextGen_CodeCrafters
-```
+https://github.com/EMKNDW/prog7313-g2-2026-poe-group-2.git
 
 ---
 
