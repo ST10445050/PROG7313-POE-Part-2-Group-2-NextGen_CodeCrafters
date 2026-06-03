@@ -1,142 +1,259 @@
-# 📱 PROG7313 – POE Part 2
+# 📱 PROG7313 – POE Part 3
 
-## FinTrack Budgeting App (NextGen_CodeCrafters)
+## FinTrack Budgeting App
+
+### NextGen_CodeCrafters
 
 ---
 
 ## 👩‍💻 Project Overview
 
-FinTrack is a mobile budgeting application developed as part of the **PROG7313 – Programming 3C** Portfolio of Evidence (Part 2).
-The application enables users to track their daily expenses, manage categories, and monitor spending habits efficiently.
+**FinTrack** is a mobile budgeting application developed for **PROG7313 – Programming 3C Portfolio of Evidence Part 3**. The application helps users manage their personal finances by tracking expenses, organising spending into categories, setting monthly budget goals, and viewing spending insights through dashboards, filters, reports, progress tracking, and analytics graphs.
 
-🔗 **GitHub Repository:**
-https://github.com/EMKNDW/prog7313-g2-2026-poe-group-2.git
+The application was developed using **Android Studio**, **Kotlin**, and **Jetpack Compose**, with **Supabase** used as the cloud backend for authentication, database storage, and receipt image storage.
 
 ---
 
 ## 🎯 Purpose of the Application
 
-The purpose of FinTrack is to:
+The purpose of FinTrack is to provide users with a simple, structured, and user-friendly way to manage their monthly spending. Users can record expenses, create categories, set minimum and maximum monthly budget goals, upload optional receipt images, and monitor their spending behaviour through visual progress tracking and analytics.
 
-* Help users manage personal finances
-* Track expenses with detailed entries
-* Categorize spending for better insights
-* Provide a structured and user-friendly budgeting system
+FinTrack supports better financial decision-making by showing users how much they have spent, which categories they spend the most on, and whether they are staying within their budget goal range.
 
 ---
 
-## 🧩 Key Features
+## 🔗 GitHub Repository
+
+```text
+https://github.com/ST10445050/PROG7313-POE-Part-2-Group-2-NextGen_CodeCrafters
+```
+
+---
+
+## 🎥 Demonstration Video
+
+```text
+PASTE DEMONSTRATION VIDEO LINK HERE
+```
+
+---
+
+## ✨ Features Implemented
 
 ### 🔐 User Authentication
 
-* User registration and login functionality
-* Secure access to user-specific data
+FinTrack includes user registration, login, logout, and password reset functionality. Authentication is handled through Supabase Auth. Each user has their own profile and data, allowing the application to display user-specific categories, expenses, questionnaire answers, budget goals, and dashboard information.
 
 ---
 
-### 📝 Questionnaire (Innovative Feature)
+### 📝 Questionnaire Feature
 
-* Users complete a questionnaire after registration
-* Enhances personalization of the app
+After successful registration, users are taken to a budgeting questionnaire. The questionnaire contains five budget-related questions that help personalise the user experience.
+
+Users have two options:
+
+* Complete the questionnaire to receive a personalised dashboard.
+* Skip the questionnaire from Question 1 and continue to a generic dashboard.
+
+If the user completes the questionnaire, their answers are saved in the Supabase database. When the user logs in again, the app retrieves the saved answers and displays a personalised dashboard based on those responses. If the user skips the questionnaire, the app displays a generic dashboard instead.
+
+---
+
+### 📊 Personalised Dashboard
+
+The dashboard provides a user-specific overview of spending, recent expenses, budget progress, and personalised information. The dashboard uses the user’s saved questionnaire answers to customise the experience. If no questionnaire answers exist, a generic dashboard is shown.
 
 ---
 
 ### 💸 Expense Management
 
-Users can:
+Users can add and view expenses. Each expense can include:
 
-* Add new expense entries
-* Capture:
+* Amount
+* Date
+* Category
+* Optional start time
+* Optional end time
+* Optional description
+* Optional receipt image
 
-  * Date
-  * Start Time
-  * End Time
-  * Description
-  * Category
-  * Amount
-  * Optional photo
+The required fields are amount, date, and category. If a user leaves any of these required fields empty, the app displays a clear user-friendly validation message. Optional fields do not block the expense from being saved.
 
 ---
 
 ### 🗂️ Category Management
 
-* Create and manage categories such as:
+Users can create, view, and delete expense categories. Default categories are seeded automatically for new users, including:
 
-  * Food
-  * Groceries
-  * Clothing
-  * Transport
-  * General
-* Icon-based UI for better user experience
+* Food
+* Transport
+* Groceries
 
----
-
-### 📊 Budgeting & Insights
-
-* View total amount spent per category
-* Set minimum and maximum budget goals
-* Track spending behaviour
+Users can also add their own custom categories to better organise their spending.
 
 ---
 
-### 🔍 Search & Filter
+### 🎯 Budget Goals
 
-* Filter expenses based on user-selected time periods
-* Improves usability and reporting
-
----
-
-### 🧭 Navigation
-
-* Bottom navigation bar for:
-
-  * Dashboard
-  * Categories
-  * Expenses
+Users can set a minimum and maximum monthly budget goal. These goals are saved in Supabase and linked to the selected month and year. If a budget goal already exists for the selected month and year, the app updates the existing goal instead of creating duplicate records.
 
 ---
 
-## 🏗️ System Architecture
+### 📈 Analytics and Interactive Graph
 
-The application follows **MVVM Architecture**:
+The Analytics screen displays spending in a visual graph format. Users can filter spending by:
 
-* **UI Layer** – Jetpack Compose
-* **ViewModel Layer** – Handles logic and state
-* **Data Layer** – RoomDB (Database, DAO, Entities)
+* All expenses
+* Today
+* This Week
+* This Month
+* Custom date range
+
+The “This Week” filter runs from Sunday to Saturday. The graph updates according to the selected date range and displays spending totals per category. It also supports tapping on graph bars, zooming in and out, horizontal scrolling, and viewing minimum and maximum goal indicators.
+
+---
+
+### 🧭 Progress Tracking
+
+The progress tracking feature visually shows how well the user is doing in relation to their minimum and maximum monthly budget goals. It compares the user’s total spending against the saved goal range and uses visual indicators to show whether the user is below the minimum goal, within the goal range, or above the maximum goal.
+
+This makes it easier for users to understand their spending behaviour without only relying on plain text values.
+
+---
+
+### 📋 Category Totals Report
+
+Users can view total spending per category for selected time periods. This helps users identify which categories have the highest spending and supports better budget planning.
+
+---
+
+### 🆘 Help & Support Screen
+
+The Help & Support screen provides users with guidance on how to use the app. The help content is stored in Supabase instead of being hardcoded directly in the app. This makes the content easier to manage and update.
+
+---
+
+### 🖼️ Receipt Image Upload
+
+Users can optionally upload a receipt image when adding an expense. Receipt images are uploaded to Supabase Storage, and the public image URL is saved with the expense record in the Supabase `expenses` table.
+
+---
+
+### 🔍 Search and Filter
+
+Users can filter expenses and analytics data based on selected time periods. This improves usability by helping users quickly view spending information for a specific day, week, month, or custom range.
+
+---
+
+### 📝 Logging
+
+Meaningful logging was implemented using a central `AppLogger` utility. Logging is used for debugging, tracking app behaviour, Supabase database operations, storage uploads, and error handling.
+
+Sensitive information such as passwords, Supabase keys, access tokens, reset links, and full session data are not logged.
+
+---
+
+## ⭐ Own Features 
+
+### 1. Questionnaire Personalisation Feature
+
+The questionnaire personalisation feature allows users to answer five budgeting-related questions after registration. The user can either complete the questionnaire or skip it from Question 1.
+
+If the user completes the questionnaire, their answers are stored in the Supabase database. These answers are then used to personalise the dashboard when the user returns to the app. This makes the dashboard more relevant to the user’s budgeting habits and financial preferences.
+
+If the user chooses to skip the questionnaire, they are taken to a generic dashboard. This gives users flexibility because they are not forced to complete the questionnaire, but they still have the option to personalise their experience.
+
+---
+
+### 2. Help & Support Screen
+
+The Help & Support screen provides users with useful guidance on how to use the FinTrack application. It helps users understand the main app features and supports a better user experience.
+
+The help content is stored in Supabase, which means it is not hardcoded into the app. This improves maintainability because support information can be updated from the database when needed.
+
+---
+
+## 🧱 System Architecture
+
+The application follows the **MVVM architecture pattern**.
+
+### UI Layer
+
+The UI layer is built using Jetpack Compose. It contains the screens, reusable components, navigation elements, and visual layouts.
+
+### ViewModel Layer
+
+The ViewModel layer manages UI state, user actions, loading states, validation, and error messages.
+
+### Repository Layer
+
+The repository layer handles communication with Supabase. Repositories are used for authentication, profiles, categories, expenses, budget goals, questionnaire answers, help information, and receipt storage.
+
+### Cloud Data Layer
+
+Supabase is used as the backend service for authentication, database tables, and image storage.
+
+---
+
+## ☁️ Cloud Implementation
+
+FinTrack uses Supabase as the cloud backend.
+
+### Supabase Auth
+
+Supabase Auth is used for:
+
+* User registration
+* User login
+* User logout
+* Password reset email functionality
+
+### Supabase Database
+
+The app stores data in Supabase tables, including:
+
+* `profiles`
+* `questionnaire_answers`
+* `categories`
+* `expenses`
+* `budget_goals`
+* `help_faqs`
+
+### Supabase Storage
+
+Supabase Storage is used to store receipt images uploaded by users. When a receipt is uploaded, the image is saved in the storage bucket, and the image URL is stored in the `expenses` table.
+
+### Row Level Security
+
+Supabase Row Level Security policies are used to ensure users can only access and manage their own personal data.
 
 ---
 
 ## 🗄️ Database Structure
 
-### 📌 Database Name:
+### `profiles`
 
-`AppDatabase`
+Stores user profile information.
 
-### 📌 Entities:
+### `questionnaire_answers`
 
-#### 👤 User
+Stores the user’s questionnaire responses for dashboard personalisation.
 
-* id
-* username
-* password
+### `categories`
 
-#### 🗂️ Category
+Stores user-created and default spending categories.
 
-* id
-* name
-* icon
+### `expenses`
 
-#### 💸 Expense
+Stores expense records, including amount, category, date, optional description, optional time values, and optional receipt URL.
 
-* id
-* userId
-* categoryId
-* date
-* startTime
-* endTime
-* description
-* amount
-* imageUri (optional)
+### `budget_goals`
+
+Stores minimum and maximum monthly budget goals.
+
+### `help_faqs`
+
+Stores Help & Support content displayed in the app.
 
 ---
 
@@ -145,118 +262,246 @@ The application follows **MVVM Architecture**:
 * Kotlin
 * Android Studio
 * Jetpack Compose
-* Room Database (RoomDB)
+* Supabase Auth
+* Supabase Database
+* Supabase Storage
 * Kotlin Coroutines
 * MVVM Architecture
+* GitHub
+* GitHub Actions
 
 ---
 
-## 🚀 How to Run the Project
+## 🔄 GitHub Actions
 
-### ✅ Prerequisites
+GitHub Actions is used to automate the build and testing workflow. The workflow checks whether the project can compile successfully and runs automated checks when code is pushed to GitHub.
 
-* Android Studio
-* Android SDK (API 26+)
-* Emulator or physical device
+The pipeline includes:
+
+* Checking out the project code
+* Setting up the required JDK
+* Running unit test/build tasks
+* Running lint checks
+* Building the debug APK
+* Uploading reports and APK artifacts
+
+This helps ensure that new code pushed to the repository does not break the project.
 
 ---
 
-### ▶️ Steps
+## 🧪 Testing Explanation
+
+Testing was completed by running the app on an emulator and checking each major feature manually.
+
+The following features were tested:
+
+* User registration
+* User login
+* Password reset
+* Questionnaire completion
+* Questionnaire skip option
+* Personalised dashboard loading
+* Generic dashboard loading
+* Category creation
+* Default category seeding
+* Expense creation
+* Required field validation
+* Optional expense fields
+* Receipt upload to Supabase Storage
+* Budget goal creation and updating
+* Analytics date filters
+* Interactive graph display
+* Progress tracking
+* Category totals
+* Help screen loading from Supabase
+* Logout navigation
+
+GitHub Actions was also used to check whether the app builds correctly after merging changes into the main branch.
+
+---
+
+## 🚀 How to Run the App
+
+### Prerequisites
+
+Before running the app, ensure that you have:
+
+* Android Studio installed
+* Android SDK installed
+* An Android emulator or physical Android device
+* Internet connection for Supabase services
+
+---
+
+### Steps to Run
 
 1. Clone the repository:
 
-```bash id="1v91s3"
+```bash
 git clone https://github.com/ST10445050/PROG7313-POE-Part-2-Group-2-NextGen_CodeCrafters.git
 ```
 
-2. Open the project in Android Studio
+2. Open the project in Android Studio.
 
-3. Allow Gradle to sync
+3. Allow Gradle to sync.
 
-4. Run the application on an emulator or device
+4. Select an emulator or connect a physical Android device.
+
+5. Click **Run** to launch the application.
+
+6. Register a new account or log in with an existing account.
 
 ---
 
-## 🧪 Testing the Application
+## 🖼️ Screenshots of the App
 
-* Register a user
-* Login
-* Complete questionnaire
-* Add categories
-* Add expenses
-* View dashboard
-* Apply filters
+Add your screenshots below.
+
+### Landing / Login Screen
+
+<img width="517" height="921" alt="image" src="https://github.com/user-attachments/assets/1988cf92-cba9-4169-bcb0-dda27267162d" />
+
+
+<img width="516" height="922" alt="image" src="https://github.com/user-attachments/assets/efd671a5-54e3-4636-ad90-2a376e217d20" />
+
+
+
+### Register Screen
+
+<img width="517" height="925" alt="image" src="https://github.com/user-attachments/assets/1eec8acd-81aa-44ca-bf61-4475e9d7a3da" />
+
+
+### Questionnaire Screen
+
+<img width="515" height="920" alt="image" src="https://github.com/user-attachments/assets/6f913775-8205-49e9-931d-81b5025f7385" />
+
+<img width="516" height="917" alt="image" src="https://github.com/user-attachments/assets/5a79e4de-fcb1-4055-8b47-337db20f97dd" />
+
+<img width="516" height="912" alt="image" src="https://github.com/user-attachments/assets/d00e4a07-0cf7-465f-9f41-3a1be83300b3" />
+
+<img width="515" height="926" alt="image" src="https://github.com/user-attachments/assets/08fc0a63-0108-49b5-8562-f07ef13ee01b" />
+
+<img width="512" height="920" alt="image" src="https://github.com/user-attachments/assets/f7577e1d-0128-4690-85b1-964730d32359" />
+
+### Dashboard Screen
+
+<img width="507" height="921" alt="image" src="https://github.com/user-attachments/assets/a55c3935-9ea7-4144-b3d4-afafc124d8d3" />
+
+### Categories Screen
+
+<img width="507" height="921" alt="image" src="https://github.com/user-attachments/assets/f69831c2-9d37-4c03-b626-0334202c616e" />
+
+
+### Add Expense Screen
+
+<img width="517" height="917" alt="image" src="https://github.com/user-attachments/assets/c11acad2-34fc-4007-9e37-2c062b150d54" />
+
+
+### Expense List Screen
+
+<img width="515" height="922" alt="image" src="https://github.com/user-attachments/assets/e250bcba-8567-4ca4-9d98-c1a5fd92d351" />
+
+
+### Budget Goals Screen
+
+<img width="510" height="857" alt="image" src="https://github.com/user-attachments/assets/1d0305a3-76cf-4be1-81c1-c875f992326d" />
+
+
+### Analytics Graph Screen
+
+<img width="502" height="801" alt="image" src="https://github.com/user-attachments/assets/309e0cc6-1a18-47f6-bd8d-4cdbad033cb0" />
+
+
+### Help & Support Screen
+
+<img width="507" height="922" alt="image" src="https://github.com/user-attachments/assets/00b9ad6b-781a-46db-9e3e-b4297cc9e6ed" />
+
 
 ---
 
 ## 👥 Team Contributions
 
-### 👩‍💻 Keona Mackan (ST10445050)
+### Keona Mackan – ST10445050
 
-* Registration & Login functionality
-* Questionnaire (Innovative Feature)
+* Registration and login functionality
+* Supabase authentication
+* Questionnaire flow
 * Dashboard implementation
+* Interactive graph feature
 
----
+### Teah Andrew – ST10440926
 
-### 👩‍💻 Teah Andrew (ST10440926)
-
+* Budget goal functionality
+* Minimum and maximum goal setup
 * Total amount per category feature
-* Min & Max budget goal functionality
+* Help & Support screen
 
----
+### Ethan Govender – ST10250993
 
-### 👨‍💻 Ethan Govender (ST10250993)
+* Expense list page
+* Add expense logic
+* Expense management support
+* Progress tracking for minimum and maximum goals
 
-* Expense List Page
-* Add Expense logic
+### Kiara Israel – ST10277747
 
----
-
-### 👩‍💻 Kiara Israel (ST10277747)
-
-* Search functionality
-* Filter logic based on time periods
+* Search and filter functionality
+* Analytics date filtering
+* Questionnaire personalisation feature
+* Dashboard personalisation based on questionnaire answers
+* Progress tracking for minimum and maximum goals
 
 ---
 
 ## 🔀 Git Workflow
 
-* Each member worked on separate branches
-* Features developed independently
-* Merged into `main` after testing
-* Commit history reflects contributions
+The team used Git and GitHub for version control. Each member worked on separate feature branches. Features were tested before being merged into the main branch.
+
+Branches included:
+
+* Authentication and navigation
+* Supabase authentication
+* Expense management
+* Categories
+* Interactive graph
+* Visual progress tracking
+* Help screen
 
 ---
 
 ## ⚠️ Challenges Faced
 
-* RoomDB integration and relationships
-* Compose state management
-* Merge conflicts between branches
-* Debugging runtime errors
+Some challenges faced during development included:
+
+* Migrating from RoomDB to Supabase
+* Handling merge conflicts between branches
+* Managing state in Jetpack Compose
+* Implementing user-specific Supabase data
+* Uploading receipt images to Supabase Storage
+* Ensuring analytics filters update correctly
+* Ensuring GitHub Actions builds successfully
 
 ---
 
 ## 💡 Future Improvements
 
-* Firebase / cloud database
-* Multi-device sync
-* Notifications for budgets
-* Advanced analytics dashboard
+Possible future improvements include:
+
+* Push notifications for budget warnings
+* More advanced financial reports
+* Exporting reports as PDF
+* Dark and light mode toggle
+* Improved accessibility options
+* More detailed spending predictions
+* Multi-currency support
 
 ---
 
 ## 📚 Conclusion
 
-FinTrack demonstrates:
+FinTrack successfully demonstrates a modern mobile budgeting application using Kotlin, Jetpack Compose, Supabase, and MVVM architecture. The app allows users to manage expenses, create categories, set budget goals, upload receipts, view analytics, and receive personalised dashboard content based on questionnaire responses.
 
-* Modern Android development using Jetpack Compose
-* Local data persistence using RoomDB
-* Clean architecture (MVVM)
-* Effective team collaboration using Git
-
-The application successfully meets the requirements of **PROG7313 POE Part 2**.
+The project also demonstrates teamwork through GitHub, feature branching, cloud database integration, GitHub Actions, and structured testing.
 
 ---
 
@@ -266,5 +511,3 @@ The application successfully meets the requirements of **PROG7313 POE Part 2**.
 * Teah Andrew (ST10440926)
 * Ethan Govender (ST10250993)
 * Kiara Israel (ST10277747)
-
----
